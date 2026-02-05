@@ -20,7 +20,6 @@ class FileImportService {
   /// Import audio files via file picker
   Future<List<Song>> importFiles() async {
     try {
-      print('DEBUG: Opening file picker...');
       // Open file picker for audio files
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom, // audio type can be flaky on some platforms

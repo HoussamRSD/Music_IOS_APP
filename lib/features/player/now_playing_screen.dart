@@ -1,12 +1,29 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/data/models/lyrics.dart';
 import '../../core/theme/app_theme.dart';
+import '../lyrics/services/lyrics_service.dart';
+import 'components/lyrics_view.dart';
 import 'services/audio_player_service.dart';
 import 'services/queue_service.dart';
 
-class NowPlayingScreen extends ConsumerWidget {
+// Provider to fetch lyrics for the current song
+final currentSongLyricsProvider = FutureProvider<Lyrics?>((ref) async {
+  final currentSong = ref.watch(currentSongProvider);
+  if (currentSong == null) return null;
+  return ref.watch(lyricsServiceProvider).getLyrics(currentSong);
+});
+
+class NowPlayingScreen extends ConsumerStatefulWidget {
   const NowPlayingScreen({super.key});
+
+  @override
+  ConsumerState<NowPlayingScreen> createState() => _NowPlayingScreenState();
+}
+
+class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
+  bool _showLyrics = false;
 
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;
@@ -15,11 +32,12 @@ class NowPlayingScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final playerState = ref.watch(audioPlayerServiceProvider);
     final currentSong = playerState.currentSong;
     final hasNext = ref.watch(hasNextSongProvider);
     final hasPrevious = ref.watch(hasPreviousSongProvider);
+    final lyricsAsync = ref.watch(currentSongLyricsProvider);
 
     if (currentSong == null) {
       // Shouldn't happen, but handle gracefully
@@ -54,79 +72,132 @@ class NowPlayingScreen extends ConsumerWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 40), // Balance layout
+                  // Lyrics Toggle Button
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: Icon(
+                      CupertinoIcons.text_quote,
+                      color: _showLyrics ? AppTheme.primaryColor : Colors.white,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showLyrics = !_showLyrics;
+                      });
+                    },
+                  ),
                 ],
               ),
             ),
 
             const Spacer(),
 
-            // Album Artwork
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: currentSong.artworkPath != null
-                      ? Image.asset(
-                          currentSong.artworkPath!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _defaultArtwork(),
-                        )
-                      : _defaultArtwork(),
-                ),
+            // Content Area (Artwork or Lyrics)
+            Expanded(
+              flex: 10,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _showLyrics
+                    ? lyricsAsync.when(
+                        data: (lyrics) {
+                          if (lyrics == null) {
+                            return const Center(
+                              child: Text(
+                                'No lyrics found',
+                                style: TextStyle(color: Colors.white54),
+                              ),
+                            );
+                          }
+                          return LyricsView(
+                            lyrics: lyrics,
+                            position: playerState.position,
+                            onSeek: (position) {
+                              ref
+                                  .read(audioPlayerServiceProvider.notifier)
+                                  .seek(position);
+                            },
+                          );
+                        },
+                        loading: () => const Center(
+                          child: CupertinoActivityIndicator(
+                            color: Colors.white,
+                          ),
+                        ),
+                        error: (_, __) => const Center(
+                          child: Text(
+                            'Error loading lyrics',
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: currentSong.artworkPath != null
+                                ? Image.asset(
+                                    currentSong.artworkPath!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            _defaultArtwork(),
+                                  )
+                                : _defaultArtwork(),
+                          ),
+                        ),
+                      ),
               ),
             ),
 
             const SizedBox(height: 40),
 
-            // Song Info
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                children: [
-                  Text(
-                    currentSong.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    currentSong.artists.isNotEmpty
-                        ? currentSong.artists.join(', ')
-                        : 'Unknown Artist',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 18,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (currentSong.album != null) ...[
-                    const SizedBox(height: 4),
+            // Song Info (Hidden if Lyrics shown? Maybe kept for context)
+            if (!_showLyrics)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  children: [
                     Text(
-                      currentSong.album!,
+                      currentSong.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      currentSong.artists.isNotEmpty
+                          ? currentSong.artists.join(', ')
+                          : 'Unknown Artist',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 16,
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 18,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (currentSong.album != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        currentSong.album!,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
 
             const SizedBox(height: 32),
 
@@ -160,14 +231,14 @@ class NowPlayingScreen extends ConsumerWidget {
                         Text(
                           _formatDuration(playerState.position),
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: Colors.white.withOpacity(0.6),
                             fontSize: 13,
                           ),
                         ),
                         Text(
                           _formatDuration(playerState.duration),
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: Colors.white.withOpacity(0.6),
                             fontSize: 13,
                           ),
                         ),
@@ -207,7 +278,7 @@ class NowPlayingScreen extends ConsumerWidget {
                       size: 36,
                       color: hasPrevious
                           ? Colors.white
-                          : Colors.white.withValues(alpha: 0.3),
+                          : Colors.white.withOpacity(0.3),
                     ),
                   ),
 

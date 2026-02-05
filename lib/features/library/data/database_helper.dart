@@ -1,5 +1,6 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import '../../../core/data/models/lyrics.dart';
 import '../../../core/data/models/song.dart';
 
 class DatabaseHelper {
@@ -18,7 +19,12 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -41,6 +47,29 @@ class DatabaseHelper {
         lyricsId TEXT,
         hasEmbeddedLyrics INTEGER DEFAULT 0,
         hasSyncedLyrics INTEGER DEFAULT 0
+      )
+    ''');
+
+    await _createLyricsTable(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _createLyricsTable(db);
+    }
+  }
+
+  Future<void> _createLyricsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE lyrics(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        songId INTEGER NOT NULL,
+        plainLyrics TEXT,
+        syncedLyrics TEXT,
+        source TEXT,
+        lastUpdated INTEGER NOT NULL,
+        language TEXT,
+        FOREIGN KEY (songId) REFERENCES songs (id) ON DELETE CASCADE
       )
     ''');
   }
@@ -84,5 +113,36 @@ class DatabaseHelper {
   Future<void> close() async {
     final db = await database;
     db.close();
+  }
+
+  // Lyrics Methods
+
+  Future<int> insertLyrics(Lyrics lyrics) async {
+    final db = await database;
+    return await db.insert('lyrics', lyrics.toMap());
+  }
+
+  Future<Lyrics?> getLyricsBySongId(int songId) async {
+    final db = await database;
+    final maps = await db.query(
+      'lyrics',
+      where: 'songId = ?',
+      whereArgs: [songId],
+    );
+
+    if (maps.isNotEmpty) {
+      return Lyrics.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<int> updateLyrics(Lyrics lyrics) async {
+    final db = await database;
+    return db.update(
+      'lyrics',
+      lyrics.toMap(),
+      where: 'id = ?',
+      whereArgs: [lyrics.id],
+    );
   }
 }
