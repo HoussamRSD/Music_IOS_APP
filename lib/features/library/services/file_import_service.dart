@@ -20,9 +20,11 @@ class FileImportService {
   /// Import audio files via file picker
   Future<List<Song>> importFiles() async {
     try {
+      print('DEBUG: Opening file picker...');
       // Open file picker for audio files
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.audio,
+        type: FileType.custom, // audio type can be flaky on some platforms
+        allowedExtensions: ['mp3', 'm4a', 'aac', 'wav', 'flac'],
         allowMultiple: true,
       );
 
@@ -41,13 +43,11 @@ class FileImportService {
           importedSongs.add(song.copyWith(id: songId));
         } catch (e) {
           // Log error but continue with other files
-          // TODO: Add proper logging
         }
       }
 
       return importedSongs;
     } catch (e) {
-      // TODO: Add proper error handling
       return [];
     }
   }
