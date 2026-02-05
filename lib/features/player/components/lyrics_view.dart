@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/data/models/lyrics.dart';
-import '../../../../core/theme/app_theme.dart';
 
 class LyricsView extends StatefulWidget {
   final Lyrics lyrics;

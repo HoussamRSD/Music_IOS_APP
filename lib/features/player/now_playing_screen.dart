@@ -122,7 +122,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        error: (_, __) => const Center(
+                        error: (error, stack) => const Center(
                           child: Text(
                             'Error loading lyrics',
                             style: TextStyle(color: Colors.white54),
@@ -175,7 +175,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                           ? currentSong.artists.join(', ')
                           : 'Unknown Artist',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 18,
                       ),
                       textAlign: TextAlign.center,
@@ -187,7 +187,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                       Text(
                         currentSong.album!,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                           fontSize: 16,
                         ),
                         textAlign: TextAlign.center,
@@ -231,14 +231,14 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                         Text(
                           _formatDuration(playerState.position),
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
+                            color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 13,
                           ),
                         ),
                         Text(
                           _formatDuration(playerState.duration),
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
+                            color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 13,
                           ),
                         ),
@@ -278,7 +278,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                       size: 36,
                       color: hasPrevious
                           ? Colors.white
-                          : Colors.white.withOpacity(0.3),
+                          : Colors.white.withValues(alpha: 0.3),
                     ),
                   ),
 
