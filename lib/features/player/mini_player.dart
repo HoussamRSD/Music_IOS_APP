@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import 'now_playing_screen.dart';
 import '../player/services/audio_player_service.dart';
 
 class MiniPlayer extends ConsumerWidget {
@@ -23,7 +24,9 @@ class MiniPlayer extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        // TODO: Navigate to NowPlaying screen
+        Navigator.of(context).push(
+          CupertinoPageRoute(builder: (context) => const NowPlayingScreen()),
+        );
       },
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 90), // Above bottom nav
@@ -75,7 +78,8 @@ class MiniPlayer extends ConsumerWidget {
                             width: 48,
                             height: 48,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _defaultArtwork(),
+                            errorBuilder: (context, error, stackTrace) =>
+                                _defaultArtwork(),
                           )
                         : _defaultArtwork(),
                   ),

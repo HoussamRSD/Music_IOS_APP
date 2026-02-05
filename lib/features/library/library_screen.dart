@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../library/services/file_import_service.dart';
 import '../library/data/song_repository.dart';
 import '../player/services/audio_player_service.dart';
+import '../player/services/queue_service.dart';
 
 // Provider for songs list
 final songsProvider = FutureProvider<List<Song>>((ref) async {
@@ -146,7 +147,8 @@ class _SongListTile extends ConsumerWidget {
                   width: 50,
                   height: 50,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _defaultArtwork(),
+                  errorBuilder: (context, error, stackTrace) =>
+                      _defaultArtwork(),
                 ),
               )
             : _defaultArtwork(),
@@ -177,6 +179,14 @@ class _SongListTile extends ConsumerWidget {
           ),
         ),
         onTap: () {
+          // Set the queue to all songs and play the selected one
+          final allSongs = ref.read(songsProvider).value ?? [];
+          final songIndex = allSongs.indexWhere((s) => s.id == song.id);
+
+          ref
+              .read(queueControllerProvider.notifier)
+              .setQueue(allSongs, startIndex: songIndex >= 0 ? songIndex : 0);
+
           // Play the song
           ref.read(audioPlayerServiceProvider.notifier).playSong(song);
         },
