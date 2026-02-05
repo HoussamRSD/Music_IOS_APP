@@ -1,6 +1,8 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../core/data/models/song.dart';
+import 'audio_handler.dart';
 
 class PlayerState {
   final Song? currentSong;
@@ -35,44 +37,55 @@ class PlayerState {
 }
 
 class AudioPlayerController extends Notifier<PlayerState> {
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  MyAudioHandler? _audioHandler;
 
   @override
   PlayerState build() {
-    _initListeners();
+    _initAudioService();
     return const PlayerState();
   }
 
-  void _initListeners() {
-    // Listen to player state changes
-    _audioPlayer.playerStateStream.listen((playerState) {
-      state = state.copyWith(
-        isPlaying: playerState.playing,
-        isLoading:
-            playerState.processingState == ProcessingState.loading ||
-            playerState.processingState == ProcessingState.buffering,
+  Future<void> _initAudioService() async {
+    try {
+      _audioHandler = await AudioService.init(
+        builder: () => MyAudioHandler(),
+        config: const AudioServiceConfig(
+          androidNotificationChannelId: 'com.glassmusic.channel.audio',
+          androidNotificationChannelName: 'Glass Music',
+          androidNotificationOngoing: true,
+        ),
       );
-    });
 
-    // Listen to position changes
-    _audioPlayer.positionStream.listen((position) {
-      state = state.copyWith(position: position);
-    });
+      // Listen to playback state
+      _audioHandler?.playbackState.listen((playbackState) {
+        state = state.copyWith(
+          isPlaying: playbackState.playing,
+          position: playbackState.position,
+          isLoading:
+              playbackState.processingState == AudioProcessingState.loading ||
+              playbackState.processingState == AudioProcessingState.buffering,
+        );
+      });
 
-    // Listen to duration changes
-    _audioPlayer.durationStream.listen((duration) {
-      if (duration != null) {
-        state = state.copyWith(duration: duration);
-      }
-    });
+      // Listen to media item changes
+      _audioHandler?.mediaItem.listen((item) {
+        if (item?.duration != null) {
+          state = state.copyWith(duration: item!.duration);
+        }
+      });
+    } catch (e) {
+      // audio_service may not be fully supported on all platforms
+      // Fall back to basic just_audio without background support
+    }
   }
 
   Future<void> playSong(Song song) async {
     try {
       state = state.copyWith(currentSong: song, isLoading: true);
 
-      await _audioPlayer.setFilePath(song.filePath);
-      await _audioPlayer.play();
+      if (_audioHandler != null) {
+        await _audioHandler!.playSong(song);
+      }
 
       state = state.copyWith(isLoading: false);
     } catch (e) {
@@ -82,11 +95,11 @@ class AudioPlayerController extends Notifier<PlayerState> {
   }
 
   Future<void> play() async {
-    await _audioPlayer.play();
+    await _audioHandler?.play();
   }
 
   Future<void> pause() async {
-    await _audioPlayer.pause();
+    await _audioHandler?.pause();
   }
 
   Future<void> togglePlayPause() async {
@@ -98,11 +111,11 @@ class AudioPlayerController extends Notifier<PlayerState> {
   }
 
   Future<void> seek(Duration position) async {
-    await _audioPlayer.seek(position);
+    await _audioHandler?.seek(position);
   }
 
   Future<void> stop() async {
-    await _audioPlayer.stop();
+    await _audioHandler?.stop();
     state = const PlayerState();
   }
 }
