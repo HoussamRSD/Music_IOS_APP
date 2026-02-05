@@ -5,6 +5,7 @@ import '../../core/data/models/song.dart';
 import '../../core/theme/app_theme.dart';
 import '../library/services/file_import_service.dart';
 import '../library/data/song_repository.dart';
+import '../player/services/audio_player_service.dart';
 
 // Provider for songs list
 final songsProvider = FutureProvider<List<Song>>((ref) async {
@@ -114,7 +115,7 @@ class LibraryScreen extends ConsumerWidget {
   }
 }
 
-class _SongListTile extends StatelessWidget {
+class _SongListTile extends ConsumerWidget {
   final Song song;
 
   const _SongListTile({required this.song});
@@ -128,7 +129,7 @@ class _SongListTile extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
@@ -176,7 +177,8 @@ class _SongListTile extends StatelessWidget {
           ),
         ),
         onTap: () {
-          // TODO: Play song
+          // Play the song
+          ref.read(audioPlayerServiceProvider.notifier).playSong(song);
         },
       ),
     );
