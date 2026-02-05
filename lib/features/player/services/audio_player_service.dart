@@ -1,4 +1,3 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../core/data/models/song.dart';
@@ -35,14 +34,16 @@ class PlayerState {
   }
 }
 
-class AudioPlayerService extends StateNotifier<PlayerState> {
+class AudioPlayerController extends Notifier<PlayerState> {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  AudioPlayerService() : super(const PlayerState()) {
-    _init();
+  @override
+  PlayerState build() {
+    _initListeners();
+    return const PlayerState();
   }
 
-  void _init() {
+  void _initListeners() {
     // Listen to player state changes
     _audioPlayer.playerStateStream.listen((playerState) {
       state = state.copyWith(
@@ -104,18 +105,12 @@ class AudioPlayerService extends StateNotifier<PlayerState> {
     await _audioPlayer.stop();
     state = const PlayerState();
   }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
 }
 
 // Riverpod Providers
 final audioPlayerServiceProvider =
-    StateNotifierProvider<AudioPlayerService, PlayerState>((ref) {
-      return AudioPlayerService();
+    NotifierProvider<AudioPlayerController, PlayerState>(() {
+      return AudioPlayerController();
     });
 
 // Convenience provider for current playing state
