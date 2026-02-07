@@ -21,9 +21,9 @@ class FileImportService {
   Future<List<Song>> importFiles() async {
     try {
       // Open file picker for audio files
+      // Using FileType.any for iOS compatibility with document picker
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom, // audio type can be flaky on some platforms
-        allowedExtensions: ['mp3', 'm4a', 'aac', 'wav', 'flac'],
+        type: FileType.any,
         allowMultiple: true,
       );
 

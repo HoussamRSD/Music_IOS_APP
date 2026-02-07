@@ -45,5 +45,29 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- File Picker Permissions -->
+	<key>UISupportsDocumentBrowser</key>
+	<true/>
+	<!-- Supported document types for audio files -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Audio Files</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.mp3</string>
+				<string>public.mpeg-4-audio</string>
+				<string>public.audio</string>
+				<string>com.microsoft.waveform-audio</string>
+				<string>org.xiph.flac</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Required for document picker -->
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>
