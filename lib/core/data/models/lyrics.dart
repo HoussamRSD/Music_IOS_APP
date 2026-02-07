@@ -86,4 +86,8 @@ class LyricLine {
   factory LyricLine.fromMap(Map<String, dynamic> map) {
     return LyricLine(timeMs: map['timeMs'] as int, text: map['text'] as String);
   }
+
+  LyricLine copyWith({int? timeMs, String? text}) {
+    return LyricLine(timeMs: timeMs ?? this.timeMs, text: text ?? this.text);
+  }
 }

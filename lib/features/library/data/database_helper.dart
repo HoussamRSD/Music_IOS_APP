@@ -174,6 +174,11 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> deleteLyricsBySongId(int songId) async {
+    final db = await database;
+    await db.delete('lyrics', where: 'songId = ?', whereArgs: [songId]);
+  }
+
   // Playlist Methods
 
   Future<int> createPlaylist(Playlist playlist) async {

@@ -19,6 +19,10 @@ class LyricsRepository {
       await _db.insertLyrics(lyrics);
     }
   }
+
+  Future<void> deleteLyrics(int songId) async {
+    await _db.deleteLyricsBySongId(songId);
+  }
 }
 
 final lyricsRepositoryProvider = Provider<LyricsRepository>((ref) {

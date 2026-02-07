@@ -118,6 +118,10 @@ class LyricsService {
     lines.sort((a, b) => a.timeMs.compareTo(b.timeMs));
     return lines;
   }
+
+  Future<void> invalidateCache(int songId) async {
+    await _repository.deleteLyrics(songId);
+  }
 }
 
 final lyricsWriterServiceProvider = Provider<LyricsWriterService>((ref) {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/data/models/lyrics.dart';
 import '../../core/theme/app_theme.dart';
 import '../lyrics/services/lyrics_service.dart';
+import '../lyrics/lyrics_editor_screen.dart';
 import 'components/lyrics_view.dart';
 import 'services/audio_player_service.dart';
 import 'services/queue_service.dart';
@@ -72,18 +73,53 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  // Lyrics Toggle Button
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: Icon(
-                      CupertinoIcons.text_quote,
-                      color: _showLyrics ? AppTheme.primaryColor : Colors.white,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _showLyrics = !_showLyrics;
-                      });
-                    },
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        child: const Icon(
+                          CupertinoIcons.pencil,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        onPressed: () async {
+                          // Navigate to Editor
+                          // if (currentSong == null) return; // Removed redundant check
+
+                          final lyrics =
+                              lyricsAsync.value; // Get current loaded lyrics
+
+                          await Navigator.of(context).push(
+                            CupertinoPageRoute(
+                              builder: (context) => LyricsEditorScreen(
+                                song: currentSong,
+                                initialLyrics: lyrics,
+                              ),
+                            ),
+                          );
+
+                          // Refresh lyrics after edit
+                          ref.invalidate(currentSongLyricsProvider);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      // Lyrics Toggle Button
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        child: Icon(
+                          CupertinoIcons.text_quote,
+                          color: _showLyrics
+                              ? AppTheme.primaryColor
+                              : Colors.white,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _showLyrics = !_showLyrics;
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
