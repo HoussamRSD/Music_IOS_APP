@@ -1,4 +1,4 @@
-name: Build iOS IPA (unsigned)
+name: Build iOS (simulator, no signing)
 
 on:
   workflow_dispatch:
@@ -19,20 +19,24 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      # Build the iPhoneOS .app without signing
-      - name: Build iOS app (no codesign)
-        run: flutter build ios --release --no-codesign
+      # Build for iOS Simulator (no signing required)
+      - name: Build iOS simulator app
+        run: flutter build ios --release --simulator
 
-      # Package Runner.app -> IPA (Payload/Runner.app)
-      - name: Package unsigned IPA
+      # Package the .app for download (zip is simplest)
+      - name: Package simulator app
         run: |
-          rm -rf Payload
-          mkdir -p Payload
-          cp -R build/ios/iphoneos/Runner.app Payload/
-          zip -r Music_IOS_App-unsigned.ipa Payload
+          APP_PATH="build/ios/iphonesimulator/Runner.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Runner.app not found at $APP_PATH"
+            find build/ios -maxdepth 4 -type d -name "*.app" -print
+            exit 1
+          fi
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" Music_IOS_App-simulator.zip
 
-      - name: Upload IPA artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-unsigned-ipa
-          path: Music_IOS_App-unsigned.ipa
+          name: ios-simulator-app
+          path: Music_IOS_App-simulator.zip
+
