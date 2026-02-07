@@ -1,7 +1,22 @@
 name: Build iOS (simulator, no signing)
 
 on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - "lib/**"
+      - "ios/**"
+      - "pubspec.yaml"
+      - ".github/workflows/**"
+  pull_request:
+    branches: [ "master" ]
+    paths:
+      - "lib/**"
+      - "ios/**"
+      - "pubspec.yaml"
+      - ".github/workflows/**"
   workflow_dispatch:
+
 
 jobs:
   build:
