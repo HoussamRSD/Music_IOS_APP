@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: macos-14
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,27 +17,75 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Show environment (debug)
+        run: |
+          sw_vers
+          xcodebuild -version
+          flutter --version
+          flutter doctor -v
+
+      # Make sure Xcode is selected and license accepted
+      - name: Select Xcode (macos-14)
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          sudo xcodebuild -license accept || true
+          xcode-select -p
+
       - name: Flutter pub get
         run: flutter pub get
 
-      # Build for iOS Simulator (no signing required)
-      - name: Build iOS simulator app
-        run: flutter build ios --release --simulator
+      # Ensure iOS platform exists (some projects are missing ios/ folder)
+      - name: Ensure iOS platform exists
+        run: |
+          if [ ! -d "ios" ]; then
+            echo "ios/ folder not found. Creating iOS platform..."
+            flutter create --platforms=ios .
+          fi
 
-      # Package the .app for download (zip is simplest)
+      # CocoaPods + Pods install (required for most Flutter iOS builds)
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods -N || true
+          pod --version
+
+      - name: Pod install
+        working-directory: ios
+        run: |
+          pod repo update
+          pod install
+
+      - name: Clean (safe)
+        run: flutter clean
+
+      - name: Build iOS simulator app (no signing)
+        run: |
+          set -o pipefail
+          flutter build ios --release --simulator 2>&1 | tee build_ios_simulator.log
+
       - name: Package simulator app
+        if: success()
         run: |
           APP_PATH="build/ios/iphonesimulator/Runner.app"
           if [ ! -d "$APP_PATH" ]; then
             echo "Runner.app not found at $APP_PATH"
-            find build/ios -maxdepth 4 -type d -name "*.app" -print
+            find build/ios -maxdepth 5 -type d -name "*.app" -print
             exit 1
           fi
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" Music_IOS_App-simulator.zip
 
-      - name: Upload artifact
+      - name: Upload app artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ios-simulator-app
           path: Music_IOS_App-simulator.zip
+
+      # Always upload the build log even on failure
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log
+          path: build_ios_simulator.log
+
 
