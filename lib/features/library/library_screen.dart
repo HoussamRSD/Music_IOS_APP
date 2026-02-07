@@ -31,8 +31,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       final importService = ref.read(fileImportServiceProvider);
       final songs = await importService.importFiles();
 
-      if (songs.isEmpty) return;
       if (!mounted) return;
+
+      if (songs.isEmpty) {
+        // Optional: Can verify if it was user cancellation or no valid files found
+        // For now, we only show success if at least one song was imported.
+        return;
+      }
 
       // Refresh the songs list
       ref.invalidate(songsProvider);
@@ -52,7 +57,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         ),
       );
     } catch (e) {
-      // Ignore errors for now or log to crash reporting
+      if (!mounted) return;
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Import Failed'),
+          content: Text('An error occurred while importing files: $e'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
     }
   }
 

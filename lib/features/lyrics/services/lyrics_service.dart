@@ -4,11 +4,13 @@ import '../../../core/data/models/lyrics.dart';
 import '../../../core/data/models/song.dart';
 import '../data/lyrics_repository.dart';
 import 'package:path/path.dart' as path;
+import 'lyrics_writer_service.dart';
 
 class LyricsService {
   final LyricsRepository _repository;
+  final LyricsWriterService _writerService;
 
-  LyricsService(this._repository);
+  LyricsService(this._repository, this._writerService);
 
   Future<Lyrics?> getLyrics(Song song) async {
     if (song.id == null) return null;
@@ -31,16 +33,10 @@ class LyricsService {
     }
 
     // 3. Try embedded lyrics
-    final embedded = await _extractEmbeddedLyrics(song.filePath);
+    final embedded = await _extractEmbeddedLyrics(song.filePath, song.id!);
     if (embedded != null) {
-      final lyrics = Lyrics(
-        songId: song.id!,
-        plainLyrics: embedded,
-        source: 'Embedded',
-        lastUpdated: DateTime.now(),
-      );
-      await _repository.saveLyrics(lyrics);
-      return lyrics;
+      await _repository.saveLyrics(embedded);
+      return embedded;
     }
 
     // 4. Online search (Future)
@@ -60,14 +56,36 @@ class LyricsService {
     return null;
   }
 
-  Future<String?> _extractEmbeddedLyrics(String path) async {
+  Future<Lyrics?> _extractEmbeddedLyrics(String filePath, int songId) async {
     try {
-      // Note: MetadataGod API currently doesn't expose USLT lyrics frame directly.
-      // We will implement this when the plugin supports it or switch to a different parser.
-      return null;
+      final embeddedText = await _writerService.readEmbeddedLyrics(filePath);
+      if (embeddedText == null || embeddedText.isEmpty) return null;
+
+      // Check if embedded lyrics are synced (LRC format)
+      if (_isLrcFormat(embeddedText)) {
+        return Lyrics(
+          songId: songId,
+          syncedLyrics: _parseLrc(embeddedText),
+          source: 'Embedded (Synced)',
+          lastUpdated: DateTime.now(),
+        );
+      } else {
+        return Lyrics(
+          songId: songId,
+          plainLyrics: embeddedText,
+          source: 'Embedded (Plain)',
+          lastUpdated: DateTime.now(),
+        );
+      }
     } catch (e) {
       return null;
     }
+  }
+
+  /// Check if text is in LRC format
+  bool _isLrcFormat(String text) {
+    final RegExp lrcRegex = RegExp(r'\[\d{2}:\d{2}\.\d{2,3}\]');
+    return lrcRegex.hasMatch(text);
   }
 
   List<LyricLine> _parseLrc(String lrcContent) {
@@ -102,6 +120,13 @@ class LyricsService {
   }
 }
 
+final lyricsWriterServiceProvider = Provider<LyricsWriterService>((ref) {
+  return LyricsWriterService();
+});
+
 final lyricsServiceProvider = Provider<LyricsService>((ref) {
-  return LyricsService(ref.watch(lyricsRepositoryProvider));
+  return LyricsService(
+    ref.watch(lyricsRepositoryProvider),
+    ref.watch(lyricsWriterServiceProvider),
+  );
 });

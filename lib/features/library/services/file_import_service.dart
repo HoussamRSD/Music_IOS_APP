@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
@@ -22,6 +23,7 @@ class FileImportService {
     try {
       // Open file picker for audio files
       // Using FileType.any for iOS compatibility with document picker
+      // This allows access to the Files app including iCloud Drive and On My iPhone
       final result = await FilePicker.platform.pickFiles(
         type: FileType.any,
         allowMultiple: true,
@@ -34,19 +36,32 @@ class FileImportService {
       final List<Song> importedSongs = [];
 
       for (final file in result.files) {
-        if (file.path == null) continue;
+        if (file.path == null) {
+          debugPrint('Skipping file with null path: ${file.name}');
+          continue;
+        }
+
+        // Filter by extension since we use FileType.any
+        final ext = path.extension(file.path!).toLowerCase();
+        if (!['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg'].contains(ext)) {
+          debugPrint('Skipping unsupported file type: $ext');
+          continue;
+        }
 
         try {
           final song = await _processAudioFile(file.path!);
           final songId = await _songRepository.addSong(song);
           importedSongs.add(song.copyWith(id: songId));
         } catch (e) {
+          debugPrint('Error processing file ${file.name}: $e');
           // Log error but continue with other files
         }
       }
 
       return importedSongs;
     } catch (e) {
+      debugPrint('Error picking files: $e');
+      // Rethrow to let UI handle it if needed, or return empty
       return [];
     }
   }
