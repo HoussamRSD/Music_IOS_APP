@@ -3,9 +3,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/home/home_screen.dart';
 import 'features/library/library_screen.dart';
 import 'features/search/search_screen.dart';
-import 'features/settings/settings_screen.dart';
 import 'ui/scaffold/main_scaffold.dart';
 
 class GlassApp extends ConsumerWidget {
@@ -14,13 +14,21 @@ class GlassApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = GoRouter(
-      initialLocation: '/library',
+      initialLocation: '/home',
       routes: [
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) {
             return MainScaffold(navigationShell: navigationShell);
           },
           branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/home',
+                  builder: (context, state) => const HomeScreen(),
+                ),
+              ],
+            ),
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -34,14 +42,6 @@ class GlassApp extends ConsumerWidget {
                 GoRoute(
                   path: '/search',
                   builder: (context, state) => const SearchScreen(),
-                ),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/settings',
-                  builder: (context, state) => const SettingsScreen(),
                 ),
               ],
             ),

@@ -17,7 +17,12 @@ class MainScaffold extends StatelessWidget {
       body: Stack(
         children: [
           navigationShell,
-          const Positioned(left: 0, right: 0, bottom: 0, child: MiniPlayer()),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 49 + 10, // TabBar height + padding
+            child: const MiniPlayer(),
+          ),
         ],
       ),
       bottomNavigationBar: LiquidBottomBar(navigationShell: navigationShell),
