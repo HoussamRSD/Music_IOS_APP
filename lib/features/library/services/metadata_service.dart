@@ -39,6 +39,8 @@ class MetadataService {
       // Actually v1.1.0 doesn't strictly require explicit init for single usage usually, but let's check.
       // We will just call getMetadata.
 
+      /*
+      // FIXME: MetadataGod.getMetadata is failing to compile.
       final metadata = await MetadataGod.getMetadata(filePath);
 
       if (metadata != null) {
@@ -63,7 +65,7 @@ class MetadataService {
           hasLyrics: false,
         );
       }
-
+      */
       return await _extractFromFilename(filePath);
     } catch (e) {
       // Fallback to filename parsing
@@ -118,10 +120,12 @@ class MetadataService {
   /// Extract and save album artwork (Separate method if usage requires it, typically we do it in batch)
   Future<String?> extractArtwork(String filePath) async {
     try {
+      /*
       final metadata = await MetadataGod.getMetadata(filePath);
       if (metadata?.picture != null) {
         return await _saveArtworkToDisk(metadata!.picture!.data, filePath);
       }
+      */
       return null;
     } catch (e) {
       return null;

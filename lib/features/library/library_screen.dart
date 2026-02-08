@@ -11,6 +11,7 @@ import '../player/services/queue_service.dart';
 import '../playlists/components/add_to_playlist_sheet.dart';
 import 'tabs/playlists_tab.dart';
 import 'tabs/artists_tab.dart';
+import 'providers/library_providers.dart';
 
 // Provider for songs list
 final songsProvider = FutureProvider<List<Song>>((ref) async {
@@ -43,7 +44,7 @@ class LibraryScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
-  int _selectedSegment = 0;
+  // int _selectedSegment = 0; // Removed local state
 
   Future<void> _importFiles() async {
     try {
@@ -94,6 +95,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final isGridView = ref.watch(isGridViewProvider);
+    final selectedSegment = ref.watch(libraryTabProvider);
 
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -101,7 +103,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         middle: CupertinoSlidingSegmentedControl<int>(
           backgroundColor: AppTheme.surfaceColor.withValues(alpha: 0.2),
           thumbColor: AppTheme.surfaceColor,
-          groupValue: _selectedSegment,
+          groupValue: selectedSegment,
           children: const {
             0: Padding(
               padding: EdgeInsets.symmetric(horizontal: 10),
@@ -127,14 +129,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           },
           onValueChanged: (value) {
             if (value != null) {
-              setState(() {
-                _selectedSegment = value;
-              });
+              ref.read(libraryTabProvider.notifier).state = value;
             }
           },
         ),
         backgroundColor: Colors.transparent,
-        leading: _selectedSegment == 0
+        leading: selectedSegment == 0
             ? CupertinoButton(
                 padding: EdgeInsets.zero,
                 child: Icon(
@@ -159,12 +159,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           ),
         ),
       ),
-      child: _buildTabContent(),
+      child: _buildTabContent(selectedSegment),
     );
   }
 
-  Widget _buildTabContent() {
-    switch (_selectedSegment) {
+  Widget _buildTabContent(int selectedSegment) {
+    switch (selectedSegment) {
       case 0:
         return const _SongsTab();
       case 1:
