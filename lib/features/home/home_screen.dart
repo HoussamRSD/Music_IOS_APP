@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../ui/components/glass_container.dart';
 import '../library/data/song_repository.dart';
 import '../library/services/file_import_service.dart';
 import '../../core/data/models/song.dart';
@@ -290,26 +291,29 @@ class _HorizontalCardList extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: size,
-                    height: size,
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceHighlight,
-                      borderRadius: BorderRadius.circular(isLarge ? 12 : 8),
-                      image: song.artworkPath != null
-                          ? DecorationImage(
-                              image: FileImage(File(song.artworkPath!)),
-                              fit: BoxFit.cover,
+                  GlassContainer(
+                    borderRadius: BorderRadius.circular(isLarge ? 12 : 8),
+                    opacity: 0.1,
+                    blur: 10,
+                    child: Container(
+                      width: size,
+                      height: size,
+                      decoration: BoxDecoration(
+                        image: song.artworkPath != null
+                            ? DecorationImage(
+                                image: FileImage(File(song.artworkPath!)),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: song.artworkPath == null
+                          ? Icon(
+                              CupertinoIcons.music_note,
+                              color: AppTheme.textSecondary,
+                              size: size / 3,
                             )
                           : null,
                     ),
-                    child: song.artworkPath == null
-                        ? Icon(
-                            CupertinoIcons.music_note,
-                            color: AppTheme.textSecondary,
-                            size: size / 3,
-                          )
-                        : null,
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
