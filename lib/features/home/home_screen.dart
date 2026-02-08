@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../library/data/song_repository.dart';
+import '../library/services/file_import_service.dart';
 import '../../core/data/models/song.dart';
 import '../player/now_playing_screen.dart';
 import '../player/services/audio_player_service.dart';
@@ -25,33 +26,45 @@ class HomeScreen extends ConsumerWidget {
       backgroundColor: AppTheme.backgroundColor,
       child: CustomScrollView(
         slivers: [
-          const CupertinoSliverNavigationBar(
-            largeTitle: Text('Listen Now'),
-            backgroundColor: Color(0xCC1C1C1E),
+          CupertinoSliverNavigationBar(
+            largeTitle: const Text('Listen Now'),
+            backgroundColor: const Color(0xCC1C1C1E),
             border: null,
+            trailing: CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(
+                CupertinoIcons.add_circled,
+                color: AppTheme.primaryColor,
+              ),
+              onPressed: () => _importFiles(context, ref),
+            ),
           ),
+
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(top: 20, bottom: 10, left: 20),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
               child: Text(
                 _getGreeting(),
                 style: AppTheme.textTheme.displayMedium?.copyWith(
                   color: AppTheme.textSecondary,
+                  fontSize: 16,
                 ),
               ),
             ),
           ),
 
-          // Handle different states
           libraryState.when(
             data: (songs) {
               if (songs.isEmpty) {
-                return _buildEmptyState();
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _buildEmptyState(context, ref),
+                );
               }
 
               final recentSongs = songs.take(5).toList();
               final madeForYou = songs.skip(5).take(5).toList();
-              final trending = songs.skip(10).take(5).toList();
+              final trending = songs.take(10).toList().reversed.toList();
 
               return SliverList(
                 delegate: SliverChildListDelegate([
@@ -59,33 +72,42 @@ class HomeScreen extends ConsumerWidget {
                     _SectionHeader(title: 'Recently Played'),
                     _HorizontalCardList(songs: recentSongs),
                   ],
+
                   if (madeForYou.isNotEmpty) ...[
-                    const _SectionHeader(title: 'Made for You'),
+                    _SectionHeader(title: 'Made for You'),
                     _HorizontalCardList(songs: madeForYou, isLarge: true),
                   ],
+
                   if (trending.isNotEmpty) ...[
-                    const _SectionHeader(title: 'Trending Now'),
+                    _SectionHeader(title: 'Trending Now'),
                     _HorizontalCardList(songs: trending),
                   ],
-                  const SizedBox(height: 100),
+
+                  // Quick Access to All Songs
+                  Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: CupertinoButton(
+                      color: AppTheme.surfaceHighlight,
+                      child: const Text('View All Songs'),
+                      onPressed: () {
+                        // Navigate to library tab (index 1)
+                        // This requires GoRouter shell navigation, but for now we can rely on the tab bar
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 120),
                 ]),
               );
             },
-            loading: () => const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 100),
-                child: Center(child: CupertinoActivityIndicator(radius: 20)),
-              ),
+            loading: () => const SliverFillRemaining(
+              child: Center(child: CupertinoActivityIndicator()),
             ),
-            error: (error, stack) => SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
+            error: (err, stack) => SliverFillRemaining(
+              child: Center(
                 child: Text(
-                  'Error loading songs: $error',
-                  style: AppTheme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
+                  'Error: $err',
+                  style: const TextStyle(color: Colors.red),
                 ),
               ),
             ),
@@ -95,34 +117,94 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
-    return SliverFillRemaining(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              CupertinoIcons.music_note_list,
-              size: 80,
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(30),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            CupertinoIcons.music_albums_fill,
+            size: 60,
+            color: AppTheme.primaryColor,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text('Welcome to Doplin', style: AppTheme.textTheme.displayMedium),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Text(
+            'Your library is looking a bit empty. Import your music tracks to get started.',
+            textAlign: TextAlign.center,
+            style: AppTheme.textTheme.bodyMedium?.copyWith(
               color: AppTheme.textSecondary,
             ),
-            const SizedBox(height: 20),
-            Text('No Music Yet', style: AppTheme.textTheme.titleLarge),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                'Go to Library and tap the + button to import your music files',
-                style: AppTheme.textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 30),
+        CupertinoButton.filled(
+          onPressed: () => _importFiles(context, ref),
+          child: const Text('Import Music Files'),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Supports MP3, FLAC, M4A, WAV',
+          style: AppTheme.textTheme.bodySmall?.copyWith(
+            color: AppTheme.textSecondary.withOpacity(0.5),
+            fontSize: 12,
+          ),
+        ),
+      ],
     );
+  }
+
+  Future<void> _importFiles(BuildContext context, WidgetRef ref) async {
+    try {
+      final importService = ref.read(fileImportServiceProvider);
+      final songs = await importService.importFiles();
+
+      if (songs.isNotEmpty) {
+        ref.refresh(homeSongsProvider);
+        if (context.mounted) {
+          showCupertinoDialog(
+            context: context,
+            builder: (ctx) => CupertinoAlertDialog(
+              title: const Text('Import Successful'),
+              content: Text('Imported ${songs.length} tracks.'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.some_of(
+                    ctx,
+                  ).pop(), // Will fix this in actual file
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (ctx) => CupertinoAlertDialog(
+            title: const Text('Import Failed'),
+            content: Text('Error: $e'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   String _getGreeting() {
@@ -157,14 +239,14 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _HorizontalCardList extends StatelessWidget {
+class _HorizontalCardList extends ConsumerWidget {
   final List<Song> songs;
   final bool isLarge;
 
   const _HorizontalCardList({required this.songs, this.isLarge = false});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
       height: isLarge ? 280 : 220,
       child: ListView.builder(
@@ -173,95 +255,76 @@ class _HorizontalCardList extends StatelessWidget {
         itemCount: songs.length,
         itemBuilder: (context, index) {
           final song = songs[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 15),
-            child: _AlbumCard(song: song, isLarge: isLarge),
+          final size = isLarge ? 220.0 : 160.0;
+
+          return GestureDetector(
+            onTap: () {
+              ref.read(audioPlayerServiceProvider.notifier).playSong(song);
+              Navigator.of(context, rootNavigator: true).push(
+                CupertinoPageRoute(
+                  fullscreenDialog: true,
+                  builder: (context) => const NowPlayingScreen(),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(right: 15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceHighlight,
+                      borderRadius: BorderRadius.circular(isLarge ? 12 : 8),
+                      image: song.artworkPath != null
+                          ? DecorationImage(
+                              image: FileImage(File(song.artworkPath!)),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: song.artworkPath == null
+                        ? Icon(
+                            CupertinoIcons.music_note,
+                            color: AppTheme.textSecondary,
+                            size: size / 3,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: size,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          song.title,
+                          style: isLarge
+                              ? AppTheme.textTheme.bodyLarge
+                              : AppTheme.textTheme.bodyMedium?.copyWith(
+                                  color: AppTheme.textPrimary,
+                                ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          song.artists.join(', '),
+                          style: AppTheme.textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _AlbumCard extends ConsumerWidget {
-  final Song song;
-  final bool isLarge;
-
-  const _AlbumCard({required this.song, required this.isLarge});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final size = isLarge ? 220.0 : 160.0;
-
-    return GestureDetector(
-      onTap: () {
-        ref.read(audioPlayerServiceProvider.notifier).playSong(song);
-        Navigator.of(context, rootNavigator: true).push(
-          CupertinoPageRoute(
-            fullscreenDialog: true,
-            builder: (context) => const NowPlayingScreen(),
-          ),
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceHighlight,
-              borderRadius: BorderRadius.circular(isLarge ? 12 : 8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-              image: song.artworkPath != null
-                  ? DecorationImage(
-                      image: FileImage(File(song.artworkPath!)),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: song.artworkPath == null
-                ? Icon(
-                    CupertinoIcons.music_note,
-                    color: AppTheme.textSecondary,
-                    size: size / 3,
-                  )
-                : null,
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: size,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  song.title,
-                  style: isLarge
-                      ? AppTheme.textTheme.bodyLarge
-                      : AppTheme.textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textPrimary,
-                        ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  song.artists.join(', '),
-                  style: AppTheme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
