@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import 'navigation_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -26,6 +27,19 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
+                    _buildSettingsItem(
+                      icon: CupertinoIcons.slider_horizontal_3,
+                      title: 'Customize Navigation',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          CupertinoPageRoute(
+                            builder: (context) =>
+                                const NavigationSettingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildDivider(),
                     _buildSettingsItem(
                       icon: CupertinoIcons.music_note_list,
                       title: 'Audio Quality',
