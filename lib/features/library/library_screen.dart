@@ -228,9 +228,14 @@ class _SongsTab extends ConsumerWidget {
           );
         }
 
+        // Get safe area padding to account for navigation bar
+        final topPadding =
+            MediaQuery.of(context).padding.top +
+            kMinInteractiveDimensionCupertino;
+
         if (isGridView) {
           return GridView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            padding: EdgeInsets.fromLTRB(16, topPadding + 16, 16, 120),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 16,
@@ -246,7 +251,10 @@ class _SongsTab extends ConsumerWidget {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 120), // Space for bottom nav
+          padding: EdgeInsets.only(
+            top: topPadding + 8,
+            bottom: 120,
+          ), // Space for nav bar and bottom nav
           itemCount: songs.length,
           itemBuilder: (context, index) {
             final song = songs[index];
