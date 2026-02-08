@@ -21,57 +21,57 @@ class AppTheme {
 
   // Typography - San Francisco Style (using Inter as closest open alternative)
   static TextTheme get textTheme => TextTheme(
-    displayLarge: GoogleFonts.inter(
+    displayLarge: GoogleFonts.pacifico(
       fontSize: 34,
       fontWeight: FontWeight.w700,
       color: textPrimary,
       letterSpacing: -0.4, // Tight tracking for headers
     ),
-    displayMedium: GoogleFonts.inter(
+    displayMedium: GoogleFonts.pacifico(
       fontSize: 28,
       fontWeight: FontWeight.w700,
       color: textPrimary,
       letterSpacing: -0.4,
     ),
-    titleLarge: GoogleFonts.inter(
+    titleLarge: GoogleFonts.pacifico(
       fontSize: 22,
       fontWeight: FontWeight.w600, // Semi-bold
       color: textPrimary,
     ),
-    titleMedium: GoogleFonts.inter(
+    titleMedium: GoogleFonts.pacifico(
       fontSize: 20,
       fontWeight: FontWeight.w600,
       color: textPrimary,
     ),
-    bodyLarge: GoogleFonts.inter(
+    bodyLarge: GoogleFonts.pacifico(
       fontSize: 17,
       fontWeight: FontWeight.w400, // Regular
       color: textPrimary,
     ),
-    bodyMedium: GoogleFonts.inter(
+    bodyMedium: GoogleFonts.pacifico(
       fontSize: 15,
       fontWeight: FontWeight.w400,
       color: textSecondary,
     ),
-    labelSmall: GoogleFonts.inter(
+    labelSmall: GoogleFonts.pacifico(
       fontSize: 11,
       fontWeight: FontWeight.w500,
       color: textSecondary,
       letterSpacing: 0.1,
     ),
-    bodySmall: GoogleFonts.inter(
+    bodySmall: GoogleFonts.pacifico(
       fontSize: 12,
       fontWeight: FontWeight.w400,
       color: textSecondary,
     ),
-    titleSmall: GoogleFonts.inter(
+    titleSmall: GoogleFonts.pacifico(
       fontSize: 14,
       fontWeight: FontWeight.w600,
       color: textPrimary,
     ),
   );
 
-  static const CupertinoThemeData darkTheme = CupertinoThemeData(
+  static CupertinoThemeData darkTheme = CupertinoThemeData(
     brightness: Brightness.dark,
     primaryColor: primaryColor,
     scaffoldBackgroundColor: backgroundColor,
@@ -79,7 +79,7 @@ class AppTheme {
     textTheme: CupertinoTextThemeData(
       primaryColor: primaryColor,
       textStyle: TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.pacifico().fontFamily,
         color: CupertinoColors.white,
         fontSize: 17,
       ),

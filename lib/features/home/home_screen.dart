@@ -9,6 +9,7 @@ import '../library/services/file_import_service.dart';
 import '../../core/data/models/song.dart';
 import '../player/now_playing_screen.dart';
 import '../player/services/audio_player_service.dart';
+import '../settings/settings_screen.dart';
 
 final homeSongsProvider = FutureProvider<List<Song>>((ref) async {
   final repository = ref.watch(songRepositoryProvider);
@@ -30,13 +31,32 @@ class HomeScreen extends ConsumerWidget {
             largeTitle: const Text('Listen Now'),
             backgroundColor: const Color(0xCC1C1C1E),
             border: null,
-            trailing: CupertinoButton(
-              padding: EdgeInsets.zero,
-              child: const Icon(
-                CupertinoIcons.add_circled,
-                color: AppTheme.primaryColor,
-              ),
-              onPressed: () => _importFiles(context, ref),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Icon(
+                    CupertinoIcons.settings,
+                    color: AppTheme.primaryColor,
+                  ),
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).push(
+                      CupertinoPageRoute(
+                        builder: (context) => const SettingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Icon(
+                    CupertinoIcons.add_circled,
+                    color: AppTheme.primaryColor,
+                  ),
+                  onPressed: () => _importFiles(context, ref),
+                ),
+              ],
             ),
           ),
 

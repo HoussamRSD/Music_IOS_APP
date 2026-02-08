@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
@@ -27,16 +29,59 @@ class MetadataResult {
 }
 
 class MetadataService {
+  final _tagger = FlutterAudioTagger();
+
   /// Extract metadata from an audio file
-  /// Falls back to filename parsing if metadata_god fails
+  /// Falls back to filename parsing if tag extraction fails
   Future<MetadataResult> extractMetadata(String filePath) async {
     try {
-      // For now, implement basic filename parsing as fallback
-      // TODO: Integrate metadata_god when platform channels are available
+      final tags = await _tagger.getAudioTags(path: filePath);
+
+      if (tags != null) {
+        // Extract artwork if available
+        String? artworkPath;
+        if (tags.artwork != null) {
+          artworkPath = await _saveArtworkToDisk(tags.artwork!, filePath);
+        }
+
+        return MetadataResult(
+          title: tags.title?.isNotEmpty == true
+              ? tags.title!
+              : path.basenameWithoutExtension(filePath),
+          album: tags.album,
+          artists: tags.artist != null ? [tags.artist!] : [],
+          duration:
+              null, // FlutterAudioTagger might not return duration reliably, audio_player does
+          trackNumber: int.tryParse(tags.track ?? ''),
+          year: int.tryParse(tags.year ?? ''),
+          genre: tags.genre,
+          artworkPath: artworkPath,
+          hasLyrics: false, // Tagger doesn't support lyrics yet
+        );
+      }
+
       return await _extractFromFilename(filePath);
     } catch (e) {
       // Fallback to filename parsing
       return await _extractFromFilename(filePath);
+    }
+  }
+
+  Future<String?> _saveArtworkToDisk(
+    Uint8List artworkBytes,
+    String sourcePath,
+  ) async {
+    try {
+      final cacheDir = await getArtworkCacheDir();
+      final fileName = '${path.basenameWithoutExtension(sourcePath)}_cover.jpg';
+      final file = File(path.join(cacheDir.path, fileName));
+
+      if (!await file.exists()) {
+        await file.writeAsBytes(artworkBytes);
+      }
+      return file.path;
+    } catch (e) {
+      return null;
     }
   }
 
@@ -66,11 +111,14 @@ class MetadataService {
     );
   }
 
-  /// Extract and save album artwork
+  /// Extract and save album artwork (Separate method if usage requires it, typically we do it in batch)
   Future<String?> extractArtwork(String filePath) async {
+    // Already handled in extractMetadata, but exposed if needed separately
     try {
-      // TODO: Implement artwork extraction with metadata_god
-      // For now, return null (no artwork)
+      final tags = await _tagger.getAudioTags(path: filePath);
+      if (tags?.artwork != null) {
+        return await _saveArtworkToDisk(tags!.artwork!, filePath);
+      }
       return null;
     } catch (e) {
       return null;
