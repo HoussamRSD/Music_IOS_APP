@@ -35,7 +35,7 @@ class MetadataService {
   /// Falls back to filename parsing if tag extraction fails
   Future<MetadataResult> extractMetadata(String filePath) async {
     try {
-      final tags = await _tagger.getAudioTags(path: filePath);
+      final tags = await _tagger.readTags(path: filePath);
 
       if (tags != null) {
         // Extract artwork if available
@@ -115,7 +115,7 @@ class MetadataService {
   Future<String?> extractArtwork(String filePath) async {
     // Already handled in extractMetadata, but exposed if needed separately
     try {
-      final tags = await _tagger.getAudioTags(path: filePath);
+      final tags = await _tagger.readTags(path: filePath);
       if (tags?.artwork != null) {
         return await _saveArtworkToDisk(tags!.artwork!, filePath);
       }
