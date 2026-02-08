@@ -58,7 +58,7 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
 
     try {
       final writer = ref.read(lyricsWriterServiceProvider);
-      final success;
+      bool success;
 
       if (_selectedSegment == 0) {
         // Save Plain Text
@@ -312,7 +312,7 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
                         // Delete Button
                         CupertinoButton(
                           padding: EdgeInsets.only(left: 8),
-                          minSize: 0,
+                          minimumSize: Size.zero,
                           child: Icon(
                             CupertinoIcons.minus_circle,
                             color: Colors.red.withValues(alpha: 0.7),

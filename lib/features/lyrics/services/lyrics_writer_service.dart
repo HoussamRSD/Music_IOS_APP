@@ -1,4 +1,6 @@
+import 'dart:developer' as developer;
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
+import 'package:flutter_audio_tagger/tag.dart';
 
 /// Service for writing lyrics to audio file metadata
 class LyricsWriterService {
@@ -8,20 +10,29 @@ class LyricsWriterService {
   Future<bool> writePlainLyrics(String filePath, String lyrics) async {
     try {
       // Read existing metadata
-      final audioData = await _tagger.readAudioFileData(filePath);
+      final tag = await _tagger.getAllTags(filePath);
+      if (tag == null) return false;
 
-      // Update lyrics field
-      final updatedData = audioData.copyWith(lyrics: lyrics);
+      // Create updated tag with new lyrics
+      final updatedTag = Tag(
+        title: tag.title,
+        artist: tag.artist,
+        album: tag.album,
+        year: tag.year,
+        genre: tag.genre,
+        artwork: tag.artwork,
+        lyrics: lyrics,
+      );
 
       // Write back to file
-      await _tagger.writeAudioFileData(
-        filePath: filePath,
-        audioFileData: updatedData,
-      );
+      await _tagger.editTags(updatedTag, filePath);
 
       return true;
     } catch (e) {
-      print('Error writing plain lyrics: $e');
+      developer.log(
+        'Error writing plain lyrics: $e',
+        name: 'LyricsWriterService',
+      );
       return false;
     }
   }
@@ -32,20 +43,29 @@ class LyricsWriterService {
   Future<bool> writeSyncedLyrics(String filePath, String lrcContent) async {
     try {
       // Read existing metadata
-      final audioData = await _tagger.readAudioFileData(filePath);
+      final tag = await _tagger.getAllTags(filePath);
+      if (tag == null) return false;
 
-      // Write LRC content as lyrics
-      final updatedData = audioData.copyWith(lyrics: lrcContent);
+      // Create updated tag with LRC content as lyrics
+      final updatedTag = Tag(
+        title: tag.title,
+        artist: tag.artist,
+        album: tag.album,
+        year: tag.year,
+        genre: tag.genre,
+        artwork: tag.artwork,
+        lyrics: lrcContent,
+      );
 
       // Write back to file
-      await _tagger.writeAudioFileData(
-        filePath: filePath,
-        audioFileData: updatedData,
-      );
+      await _tagger.editTags(updatedTag, filePath);
 
       return true;
     } catch (e) {
-      print('Error writing synced lyrics: $e');
+      developer.log(
+        'Error writing synced lyrics: $e',
+        name: 'LyricsWriterService',
+      );
       return false;
     }
   }
@@ -53,10 +73,13 @@ class LyricsWriterService {
   /// Read embedded lyrics from audio file
   Future<String?> readEmbeddedLyrics(String filePath) async {
     try {
-      final audioData = await _tagger.readAudioFileData(filePath);
-      return audioData.lyrics;
+      final tag = await _tagger.getAllTags(filePath);
+      return tag?.lyrics;
     } catch (e) {
-      print('Error reading embedded lyrics: $e');
+      developer.log(
+        'Error reading embedded lyrics: $e',
+        name: 'LyricsWriterService',
+      );
       return null;
     }
   }
@@ -64,8 +87,8 @@ class LyricsWriterService {
   /// Check if file is writable
   Future<bool> canWriteToFile(String filePath) async {
     try {
-      final audioData = await _tagger.readAudioFileData(filePath);
-      return audioData != null;
+      final tag = await _tagger.getAllTags(filePath);
+      return tag != null;
     } catch (e) {
       return false;
     }
