@@ -39,29 +39,26 @@ class MetadataService {
 
       final metadata = await MetadataGod.readMetadata(file: filePath);
 
-      if (metadata != null) {
-        // Extract artwork if available
-        String? artworkPath;
-        if (metadata.picture != null) {
-          artworkPath = await _saveArtworkToDisk(
-            metadata.picture!.data,
-            filePath,
-          );
-        }
-
-        return MetadataResult(
-          title: metadata.title ?? path.basenameWithoutExtension(filePath),
-          album: metadata.album,
-          artists: metadata.artist != null ? [metadata.artist!] : [],
-          duration: metadata.durationMs,
-          trackNumber: metadata.trackNumber,
-          year: metadata.year,
-          genre: metadata.genre,
-          artworkPath: artworkPath,
-          hasLyrics: false,
+      // Extract artwork if available
+      String? artworkPath;
+      if (metadata.picture != null) {
+        artworkPath = await _saveArtworkToDisk(
+          metadata.picture!.data,
+          filePath,
         );
       }
-      return await _extractFromFilename(filePath);
+
+      return MetadataResult(
+        title: metadata.title ?? path.basenameWithoutExtension(filePath),
+        album: metadata.album,
+        artists: metadata.artist != null ? [metadata.artist!] : [],
+        duration: metadata.durationMs?.toInt(),
+        trackNumber: metadata.trackNumber,
+        year: metadata.year,
+        genre: metadata.genre,
+        artworkPath: artworkPath,
+        hasLyrics: false,
+      );
     } catch (e) {
       // Fallback to filename parsing
       return await _extractFromFilename(filePath);
