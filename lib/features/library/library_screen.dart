@@ -105,7 +105,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _importFiles,
-          child: const Icon(CupertinoIcons.add, color: Colors.white),
+          child: const Icon(
+            CupertinoIcons.add_circled_solid,
+            color: AppTheme.primaryColor,
+            size: 32,
+          ),
         ),
       ),
       child: _selectedSegment == 0 ? const _SongsTab() : const PlaylistsTab(),
@@ -136,8 +140,26 @@ class _SongsTab extends ConsumerWidget {
                 Text('No songs yet', style: AppTheme.textTheme.titleLarge),
                 const SizedBox(height: 8),
                 Text(
-                  'Tap + to import music',
+                  'Import your music files to get started',
                   style: AppTheme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                CupertinoButton.filled(
+                  onPressed: () {
+                    // Get the parent state to call _importFiles
+                    final libraryState = context
+                        .findAncestorStateOfType<_LibraryScreenState>();
+                    libraryState?._importFiles();
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(CupertinoIcons.add, size: 20),
+                      SizedBox(width: 8),
+                      Text('Import Music'),
+                    ],
+                  ),
                 ),
               ],
             ),
