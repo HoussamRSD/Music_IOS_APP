@@ -129,7 +129,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           },
           onValueChanged: (value) {
             if (value != null) {
-              ref.read(libraryTabProvider.notifier).state = value;
+              ref.read(libraryTabProvider.notifier).setTab(value);
             }
           },
         ),

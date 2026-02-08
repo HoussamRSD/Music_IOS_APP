@@ -1,27 +1,64 @@
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/navigation/providers/navigation_provider.dart';
+import '../../features/navigation/models/navigation_tab.dart';
+import '../../features/library/providers/library_providers.dart';
 
-class LiquidBottomBar extends StatelessWidget {
+class LiquidBottomBar extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const LiquidBottomBar({super.key, required this.navigationShell});
 
-  void _onTap(int index) {
-    navigationShell.goBranch(
-      index,
-      initialLocation: index == navigationShell.currentIndex,
-    );
+  void _onTap(BuildContext context, WidgetRef ref, NavigationTab tab) {
+    // Logic to navigate based on tab
+    switch (tab) {
+      case NavigationTab.home:
+        navigationShell.goBranch(0);
+        break;
+      case NavigationTab.songs:
+        ref.read(libraryTabProvider.notifier).setTab(0); // Songs tab index
+        navigationShell.goBranch(1); // Library branch
+        break;
+      case NavigationTab.playlists:
+        ref.read(libraryTabProvider.notifier).setTab(1); // Playlists tab index
+        navigationShell.goBranch(1); // Library branch
+        break;
+      case NavigationTab.artists:
+        ref.read(libraryTabProvider.notifier).setTab(2); // Artists tab index
+        navigationShell.goBranch(1); // Library branch
+        break;
+    }
+  }
+
+  bool _isSelected(int currentBranch, int libraryTab, NavigationTab tab) {
+    if (tab == NavigationTab.home) {
+      return currentBranch == 0;
+    }
+    // All other tabs are in Library branch (1)
+    if (currentBranch != 1) return false;
+
+    switch (tab) {
+      case NavigationTab.songs:
+        return libraryTab == 0;
+      case NavigationTab.playlists:
+        return libraryTab == 1;
+      case NavigationTab.artists:
+        return libraryTab == 2;
+      default:
+        return false;
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Standard iOS Tab Bar height is ~50-80 depending on safe area
-    // We want it floating slightly or standard?
-    // "Floating mini player above tab bar" implies standard tab bar at bottom or slightly floating.
-    // "Glassmorphism" suggests blur.
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(navigationProvider);
+    final visibleTabs = settings.visibleTabs;
+    final libraryTab = ref.watch(libraryTabProvider);
+    final currentBranch = navigationShell.currentIndex;
 
     return ClipRect(
       child: BackdropFilter(
@@ -42,15 +79,14 @@ class LiquidBottomBar extends StatelessWidget {
               height: 49,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                    CupertinoIcons.play_circle_fill,
-                    'Listen Now',
-                    0,
-                  ),
-                  _buildNavItem(CupertinoIcons.music_albums_fill, 'Library', 1),
-                  _buildNavItem(CupertinoIcons.search, 'Search', 2),
-                ],
+                children: visibleTabs.map((tab) {
+                  final isSelected = _isSelected(
+                    currentBranch,
+                    libraryTab,
+                    tab,
+                  );
+                  return _buildNavItem(context, ref, tab, isSelected);
+                }).toList(),
               ),
             ),
           ),
@@ -59,21 +95,25 @@ class LiquidBottomBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final isSelected = navigationShell.currentIndex == index;
+  Widget _buildNavItem(
+    BuildContext context,
+    WidgetRef ref,
+    NavigationTab tab,
+    bool isSelected,
+  ) {
     final color = isSelected ? AppTheme.primaryColor : AppTheme.textSecondary;
 
     return GestureDetector(
-      onTap: () => _onTap(index),
+      onTap: () => _onTap(context, ref, tab),
       behavior: HitTestBehavior.opaque,
       child: Expanded(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 24),
+            Icon(tab.icon, color: color, size: 24),
             const SizedBox(height: 2),
             Text(
-              label,
+              tab.label,
               style: TextStyle(
                 color: color,
                 fontSize: 10,
