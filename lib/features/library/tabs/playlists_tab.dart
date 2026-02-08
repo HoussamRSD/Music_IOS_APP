@@ -12,9 +12,15 @@ class PlaylistsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playlistsAsync = ref.watch(playlistsProvider);
+    final topPadding =
+        MediaQuery.of(context).padding.top + kMinInteractiveDimensionCupertino;
 
     return CustomScrollView(
       slivers: [
+        SliverPadding(
+          padding: EdgeInsets.only(top: topPadding),
+          sliver: const SliverToBoxAdapter(child: SizedBox.shrink()),
+        ),
         CupertinoSliverRefreshControl(
           onRefresh: () async {
             ref.invalidate(playlistsProvider);
@@ -85,31 +91,32 @@ class PlaylistsTab extends ConsumerWidget {
     final textController = TextEditingController();
     showCupertinoDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      barrierDismissible: true,
+      builder: (dialogContext) => CupertinoAlertDialog(
         title: const Text('New Playlist'),
         content: Padding(
           padding: const EdgeInsets.only(top: 16),
           child: CupertinoTextField(
             controller: textController,
             placeholder: 'Playlist Name',
-            style: const TextStyle(color: Colors.black),
+            autofocus: true,
           ),
         ),
         actions: [
           CupertinoDialogAction(
             child: const Text('Cancel'),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
           ),
           CupertinoDialogAction(
             isDefaultAction: true,
             child: const Text('Create'),
-            onPressed: () {
+            onPressed: () async {
               if (textController.text.isNotEmpty) {
-                ref
+                await ref
                     .read(playlistServiceProvider)
                     .createPlaylist(textController.text);
                 ref.invalidate(playlistsProvider);
-                Navigator.pop(context);
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
               }
             },
           ),

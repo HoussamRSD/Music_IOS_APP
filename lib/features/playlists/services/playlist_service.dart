@@ -10,9 +10,9 @@ class PlaylistService {
 
   Future<List<Playlist>> getPlaylists() => _repository.getAllPlaylists();
 
-  Future<void> createPlaylist(String name) async {
-    if (name.trim().isEmpty) return;
-    await _repository.createPlaylist(name.trim());
+  Future<int?> createPlaylist(String name) async {
+    if (name.trim().isEmpty) return null;
+    return await _repository.createPlaylist(name.trim());
   }
 
   Future<void> deletePlaylist(int id) => _repository.deletePlaylist(id);

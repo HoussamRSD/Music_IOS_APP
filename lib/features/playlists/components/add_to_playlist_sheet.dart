@@ -113,38 +113,44 @@ class AddToPlaylistSheet extends ConsumerWidget {
   }
 
   void _showCreatePlaylistDialog(BuildContext context, WidgetRef ref) {
-    // Re-implement create dialog or genericize it
-    // For now, let's just use a simple one here or navigate to a create screen
     final textController = TextEditingController();
     showCupertinoDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      barrierDismissible: true,
+      builder: (dialogContext) => CupertinoAlertDialog(
         title: const Text('New Playlist'),
         content: Padding(
           padding: const EdgeInsets.only(top: 16),
           child: CupertinoTextField(
             controller: textController,
             placeholder: 'Playlist Name',
-            style: const TextStyle(color: Colors.black),
+            autofocus: true,
           ),
         ),
         actions: [
           CupertinoDialogAction(
             child: const Text('Cancel'),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
           ),
           CupertinoDialogAction(
             isDefaultAction: true,
             child: const Text('Create'),
             onPressed: () async {
               if (textController.text.isNotEmpty) {
-                await ref
+                final playlistId = await ref
                     .read(playlistServiceProvider)
                     .createPlaylist(textController.text);
+
+                // Add the song to the new playlist
+                if (playlistId != null) {
+                  await ref.read(playlistServiceProvider).addSongsToPlaylist(
+                    playlistId,
+                    [song],
+                  );
+                }
+
                 ref.invalidate(playlistsProvider);
-                // After creating, we should probably add the song to the new playlist
-                // But for now let's just close
-                if (context.mounted) Navigator.pop(context);
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
               }
             },
           ),
