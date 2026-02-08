@@ -16,6 +16,7 @@ class Song {
   final String? lyricsId; // Future linking to Lyrics
   final bool hasEmbeddedLyrics;
   final bool hasSyncedLyrics;
+  final bool isFavorite;
 
   const Song({
     this.id,
@@ -35,6 +36,7 @@ class Song {
     this.lyricsId,
     this.hasEmbeddedLyrics = false,
     this.hasSyncedLyrics = false,
+    this.isFavorite = false,
   });
 
   // Convert to Map for SQLite
@@ -57,6 +59,7 @@ class Song {
       'lyricsId': lyricsId,
       'hasEmbeddedLyrics': hasEmbeddedLyrics ? 1 : 0,
       'hasSyncedLyrics': hasSyncedLyrics ? 1 : 0,
+      'isFavorite': isFavorite ? 1 : 0,
     };
   }
 
@@ -87,6 +90,7 @@ class Song {
       lyricsId: map['lyricsId'] as String?,
       hasEmbeddedLyrics: (map['hasEmbeddedLyrics'] as int?) == 1,
       hasSyncedLyrics: (map['hasSyncedLyrics'] as int?) == 1,
+      isFavorite: (map['isFavorite'] as int?) == 1,
     );
   }
 
@@ -109,6 +113,7 @@ class Song {
     String? lyricsId,
     bool? hasEmbeddedLyrics,
     bool? hasSyncedLyrics,
+    bool? isFavorite,
   }) {
     return Song(
       id: id ?? this.id,
@@ -128,6 +133,7 @@ class Song {
       lyricsId: lyricsId ?? this.lyricsId,
       hasEmbeddedLyrics: hasEmbeddedLyrics ?? this.hasEmbeddedLyrics,
       hasSyncedLyrics: hasSyncedLyrics ?? this.hasSyncedLyrics,
+      isFavorite: isFavorite ?? this.isFavorite,
     );
   }
 }

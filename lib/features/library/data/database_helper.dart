@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -47,7 +47,8 @@ class DatabaseHelper {
         lastPlayed INTEGER,
         lyricsId TEXT,
         hasEmbeddedLyrics INTEGER DEFAULT 0,
-        hasSyncedLyrics INTEGER DEFAULT 0
+        hasSyncedLyrics INTEGER DEFAULT 0,
+        isFavorite INTEGER DEFAULT 0
       )
     ''');
 
@@ -61,6 +62,12 @@ class DatabaseHelper {
     }
     if (oldVersion < 3) {
       await _createPlaylistTables(db);
+    }
+    if (oldVersion < 4) {
+      // Add isFavorite column for favorites feature
+      await db.execute(
+        'ALTER TABLE songs ADD COLUMN isFavorite INTEGER DEFAULT 0',
+      );
     }
   }
 
@@ -141,6 +148,29 @@ class DatabaseHelper {
   Future<void> close() async {
     final db = await database;
     db.close();
+  }
+
+  // Favorites Methods
+
+  Future<List<Song>> getFavoriteSongs() async {
+    final db = await database;
+    final result = await db.query(
+      'songs',
+      where: 'isFavorite = ?',
+      whereArgs: [1],
+      orderBy: 'addedAt DESC',
+    );
+    return result.map((json) => Song.fromMap(json)).toList();
+  }
+
+  Future<int> toggleFavorite(int songId, bool isFavorite) async {
+    final db = await database;
+    return db.update(
+      'songs',
+      {'isFavorite': isFavorite ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [songId],
+    );
   }
 
   // Lyrics Methods

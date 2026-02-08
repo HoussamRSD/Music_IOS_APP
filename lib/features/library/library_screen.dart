@@ -12,6 +12,7 @@ import '../player/services/queue_service.dart';
 import '../playlists/components/add_to_playlist_sheet.dart';
 import 'tabs/playlists_tab.dart';
 import 'tabs/artists_tab.dart';
+import 'tabs/favorites_tab.dart';
 import 'providers/library_providers.dart';
 
 // Provider for songs list
@@ -107,24 +108,32 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           groupValue: selectedSegment,
           children: const {
             0: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
+              padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 'Songs',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
             1: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
+              padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 'Playlists',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
             2: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
+              padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 'Artists',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+            3: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(
+                CupertinoIcons.heart_fill,
+                color: Colors.white,
+                size: 16,
               ),
             ),
           },
@@ -172,6 +181,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         return const PlaylistsTab();
       case 2:
         return const ArtistsTab();
+      case 3:
+        return const FavoritesTab();
       default:
         return const _SongsTab();
     }
@@ -315,8 +326,8 @@ class _SongListTile extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(
                   File(song.artworkPath!),
-                  width: 50,
-                  height: 50,
+                  width: 100,
+                  height: 100,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) =>
                       _defaultArtwork(),
@@ -351,6 +362,24 @@ class _SongListTile extends ConsumerWidget {
                 color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 13,
               ),
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minSize: 32,
+              child: Icon(
+                song.isFavorite
+                    ? CupertinoIcons.heart_fill
+                    : CupertinoIcons.heart,
+                color: song.isFavorite ? Colors.red : Colors.white,
+                size: 22,
+              ),
+              onPressed: () async {
+                await ref
+                    .read(songRepositoryProvider)
+                    .toggleFavorite(song.id!, !song.isFavorite);
+                ref.invalidate(songsProvider);
+                ref.invalidate(favoriteSongsProvider);
+              },
             ),
             CupertinoButton(
               padding: EdgeInsets.zero,
@@ -400,8 +429,8 @@ class _SongListTile extends ConsumerWidget {
 
   Widget _defaultArtwork() {
     return Container(
-      width: 50,
-      height: 50,
+      width: 100,
+      height: 100,
       decoration: BoxDecoration(
         color: AppTheme.primaryColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),

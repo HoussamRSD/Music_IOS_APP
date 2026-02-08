@@ -14,22 +14,25 @@ class LiquidBottomBar extends ConsumerWidget {
   const LiquidBottomBar({super.key, required this.navigationShell});
 
   void _onTap(BuildContext context, WidgetRef ref, NavigationTab tab) {
-    // Logic to navigate based on tab
     switch (tab) {
       case NavigationTab.home:
         navigationShell.goBranch(0);
         break;
       case NavigationTab.songs:
-        ref.read(libraryTabProvider.notifier).setTab(0); // Songs tab index
-        navigationShell.goBranch(1); // Library branch
+        ref.read(libraryTabProvider.notifier).setTab(0);
+        navigationShell.goBranch(1);
         break;
       case NavigationTab.playlists:
-        ref.read(libraryTabProvider.notifier).setTab(1); // Playlists tab index
-        navigationShell.goBranch(1); // Library branch
+        ref.read(libraryTabProvider.notifier).setTab(1);
+        navigationShell.goBranch(1);
         break;
       case NavigationTab.artists:
-        ref.read(libraryTabProvider.notifier).setTab(2); // Artists tab index
-        navigationShell.goBranch(1); // Library branch
+        ref.read(libraryTabProvider.notifier).setTab(2);
+        navigationShell.goBranch(1);
+        break;
+      case NavigationTab.favorites:
+        ref.read(libraryTabProvider.notifier).setTab(3);
+        navigationShell.goBranch(1);
         break;
     }
   }
@@ -38,7 +41,6 @@ class LiquidBottomBar extends ConsumerWidget {
     if (tab == NavigationTab.home) {
       return currentBranch == 0;
     }
-    // All other tabs are in Library branch (1)
     if (currentBranch != 1) return false;
 
     switch (tab) {
@@ -48,6 +50,8 @@ class LiquidBottomBar extends ConsumerWidget {
         return libraryTab == 1;
       case NavigationTab.artists:
         return libraryTab == 2;
+      case NavigationTab.favorites:
+        return libraryTab == 3;
       default:
         return false;
     }
@@ -103,10 +107,10 @@ class LiquidBottomBar extends ConsumerWidget {
   ) {
     final color = isSelected ? AppTheme.primaryColor : AppTheme.textSecondary;
 
-    return GestureDetector(
-      onTap: () => _onTap(context, ref, tab),
-      behavior: HitTestBehavior.opaque,
-      child: Expanded(
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onTap(context, ref, tab),
+        behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

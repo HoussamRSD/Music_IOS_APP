@@ -24,6 +24,16 @@ class SongRepository {
   Future<void> deleteSong(int id) async {
     await _dbHelper.deleteSong(id);
   }
+
+  // Favorites methods
+
+  Future<List<Song>> getFavoriteSongs() async {
+    return await _dbHelper.getFavoriteSongs();
+  }
+
+  Future<void> toggleFavorite(int songId, bool isFavorite) async {
+    await _dbHelper.toggleFavorite(songId, isFavorite);
+  }
 }
 
 // Riverpod Provider

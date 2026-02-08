@@ -29,6 +29,10 @@ class GlassBottomBar extends ConsumerWidget {
         ref.read(libraryTabProvider.notifier).setTab(2);
         navigationShell.goBranch(1);
         break;
+      case NavigationTab.favorites:
+        ref.read(libraryTabProvider.notifier).setTab(3);
+        navigationShell.goBranch(1);
+        break;
     }
   }
 
@@ -45,6 +49,8 @@ class GlassBottomBar extends ConsumerWidget {
         return libraryTab == 1;
       case NavigationTab.artists:
         return libraryTab == 2;
+      case NavigationTab.favorites:
+        return libraryTab == 3;
       default:
         return false;
     }
@@ -62,9 +68,9 @@ class GlassBottomBar extends ConsumerWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          height: 60 + bottomPadding, // Fixed height + safe area
+          height: 60 + bottomPadding,
           decoration: BoxDecoration(
-            color: const Color(0xCC1C1C1E), // Translucent dark gray
+            color: const Color(0xCC1C1C1E),
             border: Border(
               top: BorderSide(
                 color: Colors.white.withValues(alpha: 0.1),
@@ -109,7 +115,7 @@ class GlassBottomBar extends ConsumerWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 10,
-                fontFamily: 'Inter', // Keep legible font for small labels
+                fontFamily: 'Inter',
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
