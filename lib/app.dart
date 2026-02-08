@@ -6,15 +6,31 @@ import 'core/theme/app_theme.dart';
 import 'features/home/home_screen.dart';
 import 'features/library/library_screen.dart';
 import 'features/search/search_screen.dart';
+import 'features/navigation/providers/navigation_provider.dart';
+import 'features/library/providers/library_providers.dart';
 import 'ui/scaffold/main_scaffold.dart';
 
-class GlassApp extends ConsumerWidget {
+class GlassApp extends ConsumerStatefulWidget {
   const GlassApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final router = GoRouter(
-      initialLocation: '/home',
+  ConsumerState<GlassApp> createState() => _GlassAppState();
+}
+
+class _GlassAppState extends ConsumerState<GlassApp> {
+  late GoRouter _router;
+  bool _initialNavigationDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Create router with initial location - will update after settings load
+    _router = _createRouter('/home');
+  }
+
+  GoRouter _createRouter(String initialLocation) {
+    return GoRouter(
+      initialLocation: initialLocation,
       routes: [
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) {
@@ -49,11 +65,36 @@ class GlassApp extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(navigationProvider);
+
+    // Navigate to default tab after settings are loaded (only once)
+    if (!_initialNavigationDone) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_initialNavigationDone) {
+          _initialNavigationDone = true;
+          final defaultTab = settings.defaultTab;
+
+          // Set library tab if needed
+          if (defaultTab.libraryTabIndex != null) {
+            ref
+                .read(libraryTabProvider.notifier)
+                .setTab(defaultTab.libraryTabIndex!);
+          }
+
+          // Navigate to the correct route
+          _router.go(defaultTab.routePath);
+        }
+      });
+    }
 
     return CupertinoApp.router(
       title: 'DOPLIN',
       theme: AppTheme.darkTheme,
-      routerConfig: router,
+      routerConfig: _router,
     );
   }
 }

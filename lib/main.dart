@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:metadata_god/metadata_god.dart';
 import 'app.dart';
 
 import 'package:flutter/services.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize MetadataGod for audio metadata extraction (required since v0.4.0)
+  MetadataGod.initialize();
 
   // Set the system overlay style to be transparent with light icons
   SystemChrome.setSystemUIOverlayStyle(

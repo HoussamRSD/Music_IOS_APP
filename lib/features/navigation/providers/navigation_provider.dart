@@ -1,11 +1,28 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/navigation_tab.dart';
 
-// TODO: Persist settings using SharedPreferences or similar
+const _settingsKey = 'navigation_settings';
+
 class NavigationNotifier extends Notifier<NavigationSettings> {
   @override
   NavigationSettings build() {
+    // Load settings asynchronously after initial build
+    _loadSettings();
     return NavigationSettings.initial();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_settingsKey);
+    if (jsonString != null) {
+      state = NavigationSettings.fromJson(jsonString);
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_settingsKey, state.toJson());
   }
 
   void reorder(int oldIndex, int newIndex) {
@@ -16,6 +33,7 @@ class NavigationNotifier extends Notifier<NavigationSettings> {
     final item = newOrder.removeAt(oldIndex);
     newOrder.insert(newIndex, item);
     state = state.copyWith(order: newOrder);
+    _saveSettings();
   }
 
   void toggleVisibility(NavigationTab tab) {
@@ -29,7 +47,29 @@ class NavigationNotifier extends Notifier<NavigationSettings> {
       }
       newHidden.add(tab);
     }
-    state = state.copyWith(hidden: newHidden);
+
+    // If hiding the default tab, reset default to first visible tab
+    NavigationTab? newDefault;
+    if (newHidden.contains(state.defaultTab)) {
+      final visibleAfterHide = state.order
+          .where((t) => !newHidden.contains(t))
+          .toList();
+      if (visibleAfterHide.isNotEmpty) {
+        newDefault = visibleAfterHide.first;
+      }
+    }
+
+    state = state.copyWith(hidden: newHidden, defaultTab: newDefault);
+    _saveSettings();
+  }
+
+  void setDefaultTab(NavigationTab tab) {
+    // Only allow setting visible tabs as default
+    if (state.hidden.contains(tab)) {
+      return;
+    }
+    state = state.copyWith(defaultTab: tab);
+    _saveSettings();
   }
 }
 

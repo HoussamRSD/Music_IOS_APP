@@ -11,7 +11,7 @@ class NavigationSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(navigationProvider);
-    final order = settings.order; // This contains all tabs in current order
+    final order = settings.order;
 
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -29,7 +29,7 @@ class NavigationSettingsScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                'Drag to reorder tabs. Toggle switch to hide/show.',
+                'Drag to reorder. Toggle to hide/show. Tap star to set default.',
                 style: AppTheme.textTheme.bodyMedium?.copyWith(
                   color: AppTheme.textSecondary,
                 ),
@@ -67,6 +67,7 @@ class NavigationSettingsScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final tab = order[index];
                   final isVisible = !settings.hidden.contains(tab);
+                  final isDefault = settings.defaultTab == tab;
 
                   return Container(
                     key: ValueKey(tab),
@@ -79,17 +80,71 @@ class NavigationSettingsScreen extends ConsumerWidget {
                         color: Colors.transparent,
                         child: ListTile(
                           leading: Icon(tab.icon, color: AppTheme.primaryColor),
-                          title: Text(
-                            tab.label,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontFamily: 'Pacifico',
-                              fontSize: 18,
-                            ),
+                          title: Row(
+                            children: [
+                              Text(
+                                tab.label,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'Pacifico',
+                                  fontSize: 18,
+                                ),
+                              ),
+                              if (isDefault) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'Default',
+                                    style: TextStyle(
+                                      color: AppTheme.primaryColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Default tab star button
+                              CupertinoButton(
+                                padding: EdgeInsets.zero,
+                                minSize: 32,
+                                onPressed: isVisible
+                                    ? () {
+                                        ref
+                                            .read(navigationProvider.notifier)
+                                            .setDefaultTab(tab);
+                                      }
+                                    : null,
+                                child: Icon(
+                                  isDefault
+                                      ? CupertinoIcons.star_fill
+                                      : CupertinoIcons.star,
+                                  color: isDefault
+                                      ? Colors.amber
+                                      : (isVisible
+                                            ? AppTheme.textSecondary
+                                            : AppTheme.textSecondary.withValues(
+                                                alpha: 0.3,
+                                              )),
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Visibility toggle
                               CupertinoSwitch(
                                 value: isVisible,
                                 activeColor: AppTheme.primaryColor,

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:metadata_god/metadata_god.dart';
@@ -34,18 +35,30 @@ class MetadataService {
   /// Falls back to filename parsing if tag extraction fails
   Future<MetadataResult> extractMetadata(String filePath) async {
     try {
-      // Initialize MetadataGod if needed (safe to call)
-      // MetadataGod.initialize();
+      debugPrint('MetadataService: Reading metadata from: $filePath');
 
       final metadata = await MetadataGod.readMetadata(file: filePath);
 
+      debugPrint(
+        'MetadataService: Title=${metadata.title}, Artist=${metadata.artist}',
+      );
+      debugPrint(
+        'MetadataService: Picture available: ${metadata.picture != null}',
+      );
+      if (metadata.picture != null) {
+        debugPrint(
+          'MetadataService: Picture size: ${metadata.picture!.data.length} bytes',
+        );
+      }
+
       // Extract artwork if available
       String? artworkPath;
-      if (metadata.picture != null) {
+      if (metadata.picture != null && metadata.picture!.data.isNotEmpty) {
         artworkPath = await _saveArtworkToDisk(
           metadata.picture!.data,
           filePath,
         );
+        debugPrint('MetadataService: Artwork saved to: $artworkPath');
       }
 
       return MetadataResult(
@@ -59,8 +72,10 @@ class MetadataService {
         artworkPath: artworkPath,
         hasLyrics: false,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       // Fallback to filename parsing
+      debugPrint('MetadataService: Error reading metadata: $e');
+      debugPrint('MetadataService: Stack trace: $stackTrace');
       return await _extractFromFilename(filePath);
     }
   }
