@@ -71,13 +71,10 @@ class FileImportService {
     // 1. Copy file to app's music directory
     final destPath = await _copyToMusicDirectory(sourcePath);
 
-    // 2. Extract metadata
+    // 2. Extract metadata (includes artwork extraction)
     final metadata = await _metadataService.extractMetadata(destPath);
 
-    // 3. Extract artwork (if available)
-    final artworkPath = await _metadataService.extractArtwork(destPath);
-
-    // 4. Create Song model
+    // 3. Create Song model using artworkPath from metadata
     return Song(
       title: metadata.title,
       album: metadata.album,
@@ -87,7 +84,7 @@ class FileImportService {
       year: metadata.year,
       genre: metadata.genre,
       filePath: destPath,
-      artworkPath: artworkPath,
+      artworkPath: metadata.artworkPath,
       addedAt: DateTime.now(),
       hasEmbeddedLyrics: metadata.hasLyrics,
     );
