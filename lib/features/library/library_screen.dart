@@ -17,6 +17,9 @@ final songsProvider = FutureProvider<List<Song>>((ref) async {
   return await repository.getAllSongs();
 });
 
+// Provider for view mode
+final isGridViewProvider = StateProvider<bool>((ref) => false);
+
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
 
@@ -35,8 +38,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       if (!mounted) return;
 
       if (songs.isEmpty) {
-        // Optional: Can verify if it was user cancellation or no valid files found
-        // For now, we only show success if at least one song was imported.
         return;
       }
 
@@ -77,6 +78,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isGridView = ref.watch(isGridViewProvider);
+
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.backgroundColor,
       navigationBar: CupertinoNavigationBar(
@@ -103,6 +106,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           },
         ),
         backgroundColor: Colors.transparent,
+        leading: _selectedSegment == 0
+            ? CupertinoButton(
+                padding: EdgeInsets.zero,
+                child: Icon(
+                  isGridView
+                      ? CupertinoIcons.list_bullet
+                      : CupertinoIcons.square_grid_2x2,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
+                onPressed: () {
+                  ref.read(isGridViewProvider.notifier).state = !isGridView;
+                },
+              )
+            : null,
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _importFiles,
@@ -124,6 +142,7 @@ class _SongsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final songsAsync = ref.watch(songsProvider);
+    final isGridView = ref.watch(isGridViewProvider);
 
     return songsAsync.when(
       data: (songs) {
@@ -164,6 +183,23 @@ class _SongsTab extends ConsumerWidget {
                 ),
               ],
             ),
+          );
+        }
+
+        if (isGridView) {
+          return GridView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.75,
+            ),
+            itemCount: songs.length,
+            itemBuilder: (context, index) {
+              final song = songs[index];
+              return _SongGridTile(song: song);
+            },
           );
         }
 
@@ -325,6 +361,81 @@ class _SongListTile extends ConsumerWidget {
         CupertinoIcons.music_note,
         color: AppTheme.primaryColor,
         size: 24,
+      ),
+    );
+  }
+}
+
+class _SongGridTile extends ConsumerWidget {
+  final Song song;
+
+  const _SongGridTile({required this.song});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(audioPlayerServiceProvider.notifier).playSong(song);
+        ref.read(queueControllerProvider.notifier).setQueue([
+          song,
+        ]); // Simplified queue logic for grid
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: AppTheme.surfaceHighlight,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: song.artworkPath != null
+                    ? Image.file(
+                        File(song.artworkPath!),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _defaultArtwork(),
+                      )
+                    : _defaultArtwork(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            song.title,
+            style: AppTheme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            song.artists.join(', '),
+            style: AppTheme.textTheme.bodySmall?.copyWith(
+              color: AppTheme.textSecondary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _defaultArtwork() {
+    return Container(
+      color: AppTheme.surfaceHighlight,
+      child: Center(
+        child: Icon(
+          CupertinoIcons.music_note,
+          color: AppTheme.textSecondary,
+          size: 40,
+        ),
       ),
     );
   }
