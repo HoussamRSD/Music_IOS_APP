@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -73,6 +72,7 @@ class MetadataService {
     }
   }
 
+  /*
   Future<String?> _saveArtworkToDisk(
     Uint8List artworkBytes,
     String sourcePath,
@@ -90,6 +90,7 @@ class MetadataService {
       return null;
     }
   }
+  */
 
   Future<MetadataResult> _extractFromFilename(String filePath) async {
     final fileName = path.basenameWithoutExtension(filePath);
