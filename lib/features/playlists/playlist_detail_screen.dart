@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -113,8 +114,8 @@ class PlaylistDetailScreen extends ConsumerWidget {
                           leading: song.artworkPath != null
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(4),
-                                  child: Image.asset(
-                                    song.artworkPath!,
+                                  child: Image.file(
+                                    File(song.artworkPath!),
                                     width: 40,
                                     height: 40,
                                     fit: BoxFit.cover,

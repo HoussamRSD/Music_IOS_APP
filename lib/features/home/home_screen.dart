@@ -134,7 +134,7 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text('Welcome to Doplin', style: AppTheme.textTheme.displayMedium),
+        Text('Welcome to DOPLIN', style: AppTheme.textTheme.displayMedium),
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -169,7 +169,7 @@ class HomeScreen extends ConsumerWidget {
       final songs = await importService.importFiles();
 
       if (songs.isNotEmpty) {
-        ref.refresh(homeSongsProvider);
+        ref.invalidate(homeSongsProvider);
         if (context.mounted) {
           showCupertinoDialog(
             context: context,
@@ -179,9 +179,7 @@ class HomeScreen extends ConsumerWidget {
               actions: [
                 CupertinoDialogAction(
                   child: const Text('OK'),
-                  onPressed: () => Navigator.some_of(
-                    ctx,
-                  ).pop(), // Will fix this in actual file
+                  onPressed: () => Navigator.of(ctx).pop(),
                 ),
               ],
             ),

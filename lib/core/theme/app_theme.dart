@@ -59,6 +59,16 @@ class AppTheme {
       color: textSecondary,
       letterSpacing: 0.1,
     ),
+    bodySmall: GoogleFonts.inter(
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      color: textSecondary,
+    ),
+    titleSmall: GoogleFonts.inter(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: textPrimary,
+    ),
   );
 
   static const CupertinoThemeData darkTheme = CupertinoThemeData(

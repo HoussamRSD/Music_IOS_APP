@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -172,8 +173,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
                             child: currentSong.artworkPath != null
-                                ? Image.asset(
-                                    currentSong.artworkPath!,
+                                ? Image.file(
+                                    File(currentSong.artworkPath!),
                                     fit: BoxFit.cover,
                                     errorBuilder:
                                         (context, error, stackTrace) =>

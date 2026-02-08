@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -227,8 +228,8 @@ class _SongListTile extends ConsumerWidget {
         leading: song.artworkPath != null
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  song.artworkPath!,
+                child: Image.file(
+                  File(song.artworkPath!),
                   width: 50,
                   height: 50,
                   fit: BoxFit.cover,

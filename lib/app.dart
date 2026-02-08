@@ -51,7 +51,7 @@ class GlassApp extends ConsumerWidget {
     );
 
     return CupertinoApp.router(
-      title: 'Glass Music',
+      title: 'DOPLIN',
       theme: AppTheme.darkTheme,
       routerConfig: router,
     );

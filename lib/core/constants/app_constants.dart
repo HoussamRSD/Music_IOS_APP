@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String appName = 'Glass Music';
+  static const String appName = 'DOPLIN';
   static const String fontFamily =
       'SF Pro Display'; // Fallback if Google Fonts not used, but we'll use Google Fonts 'Inter' or similar as proxy for SF
 

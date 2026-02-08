@@ -49,8 +49,8 @@ class AudioPlayerController extends Notifier<PlayerState> {
       _audioHandler = await AudioService.init(
         builder: () => MyAudioHandler(),
         config: const AudioServiceConfig(
-          androidNotificationChannelId: 'com.glassmusic.channel.audio',
-          androidNotificationChannelName: 'Glass Music',
+          androidNotificationChannelId: 'com.doplin.channel.audio',
+          androidNotificationChannelName: 'DOPLIN',
           androidNotificationOngoing: true,
         ),
       );
