@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/player/mini_player.dart';
@@ -11,21 +12,29 @@ class MainScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      extendBody: true, // Important for glass effect
-      body: Stack(
-        children: [
-          navigationShell,
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 49 + 10, // TabBar height + padding
-            child: const MiniPlayer(),
-          ),
-        ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
       ),
-      bottomNavigationBar: LiquidBottomBar(navigationShell: navigationShell),
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        extendBody: true, // Important for glass effect
+        body: Stack(
+          children: [
+            navigationShell,
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 49 + 10, // TabBar height + padding
+              child: const MiniPlayer(),
+            ),
+          ],
+        ),
+        bottomNavigationBar: LiquidBottomBar(navigationShell: navigationShell),
+      ),
     );
   }
 }
