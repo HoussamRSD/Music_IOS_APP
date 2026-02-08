@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
+
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
@@ -29,34 +29,37 @@ class MetadataResult {
 }
 
 class MetadataService {
-  final _tagger = FlutterAudioTagger();
-
   /// Extract metadata from an audio file
   /// Falls back to filename parsing if tag extraction fails
   Future<MetadataResult> extractMetadata(String filePath) async {
     try {
-      final tags = await _tagger.readTags(path: filePath);
+      // Initialize MetadataGod if needed (usually safe to call repeatedly or check docs, but for safety we just call getMetadata)
+      // MetadataGod.initialize(); // Not always needed depending on version, but good practice if available.
+      // Actually v1.1.0 doesn't strictly require explicit init for single usage usually, but let's check.
+      // We will just call getMetadata.
 
-      if (tags != null) {
+      final metadata = await MetadataGod.getMetadata(filePath);
+
+      if (metadata != null) {
         // Extract artwork if available
         String? artworkPath;
-        if (tags.artwork != null) {
-          artworkPath = await _saveArtworkToDisk(tags.artwork!, filePath);
+        if (metadata.picture != null) {
+          artworkPath = await _saveArtworkToDisk(
+            metadata.picture!.data,
+            filePath,
+          );
         }
 
         return MetadataResult(
-          title: tags.title?.isNotEmpty == true
-              ? tags.title!
-              : path.basenameWithoutExtension(filePath),
-          album: tags.album,
-          artists: tags.artist != null ? [tags.artist!] : [],
-          duration:
-              null, // FlutterAudioTagger might not return duration reliably, audio_player does
-          trackNumber: int.tryParse(tags.track ?? ''),
-          year: int.tryParse(tags.year ?? ''),
-          genre: tags.genre,
+          title: metadata.title ?? path.basenameWithoutExtension(filePath),
+          album: metadata.album,
+          artists: metadata.artist != null ? [metadata.artist!] : [],
+          duration: metadata.durationMs,
+          trackNumber: metadata.trackNumber,
+          year: metadata.year,
+          genre: metadata.genre,
           artworkPath: artworkPath,
-          hasLyrics: false, // Tagger doesn't support lyrics yet
+          hasLyrics: false,
         );
       }
 
@@ -113,11 +116,10 @@ class MetadataService {
 
   /// Extract and save album artwork (Separate method if usage requires it, typically we do it in batch)
   Future<String?> extractArtwork(String filePath) async {
-    // Already handled in extractMetadata, but exposed if needed separately
     try {
-      final tags = await _tagger.readTags(path: filePath);
-      if (tags?.artwork != null) {
-        return await _saveArtworkToDisk(tags!.artwork!, filePath);
+      final metadata = await MetadataGod.getMetadata(filePath);
+      if (metadata?.picture != null) {
+        return await _saveArtworkToDisk(metadata!.picture!.data, filePath);
       }
       return null;
     } catch (e) {
