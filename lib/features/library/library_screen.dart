@@ -10,6 +10,7 @@ import '../library/data/song_repository.dart';
 import '../player/services/audio_player_service.dart';
 import '../player/services/queue_service.dart';
 import '../playlists/components/add_to_playlist_sheet.dart';
+import '../settings/settings_screen.dart';
 import 'tabs/playlists_tab.dart';
 import 'tabs/artists_tab.dart';
 import 'tabs/favorites_tab.dart';
@@ -159,14 +160,33 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 },
               )
             : null,
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: _importFiles,
-          child: const Icon(
-            CupertinoIcons.add_circled_solid,
-            color: AppTheme.primaryColor,
-            size: 32,
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(
+                CupertinoIcons.settings,
+                color: AppTheme.primaryColor,
+              ),
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  CupertinoPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _importFiles,
+              child: const Icon(
+                CupertinoIcons.add_circled_solid,
+                color: AppTheme.primaryColor,
+                size: 32,
+              ),
+            ),
+          ],
         ),
       ),
       child: _buildTabContent(selectedSegment),
