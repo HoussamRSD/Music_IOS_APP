@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:metadata_god/metadata_god.dart';
+// import 'package:metadata_god/metadata_god.dart';
 
 class MetadataResult {
   final String title;
@@ -133,6 +133,28 @@ class MetadataService {
   }
 
   /// Get the app's artwork cache directory
+  /*
+  Future<String> _saveArtworkToDisk(List<int> bytes, String audioPath) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final artworkDir = Directory('${appDir.path}/artwork_cache');
+    
+    if (!await artworkDir.exists()) {
+      await artworkDir.create(recursive: true);
+    }
+
+    // Create a unique hash for the artwork based on path
+    // Using simple hash might have collisions but acceptable for cache
+    final hash = audioPath.hashCode;
+    final artworkPath = '${artworkDir.path}/$hash.jpg';
+    final file = File(artworkPath);
+
+    if (!await file.exists()) {
+      await file.writeAsBytes(bytes);
+    }
+
+    return artworkPath;
+  }
+  */
   Future<Directory> getArtworkCacheDir() async {
     final appDir = await getApplicationDocumentsDirectory();
     final artworkDir = Directory(path.join(appDir.path, 'artwork'));

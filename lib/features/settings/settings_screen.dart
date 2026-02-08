@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../ui/components/glass_container.dart';
 import 'navigation_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -20,11 +21,10 @@ class SettingsScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              GlassContainer(
+                borderRadius: BorderRadius.circular(12),
+                opacity: 0.1,
+                blur: 20,
                 child: Column(
                   children: [
                     _buildSettingsItem(

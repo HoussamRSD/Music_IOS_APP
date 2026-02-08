@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/navigation/providers/navigation_provider.dart';
-import '../../features/navigation/models/navigation_tab.dart';
+import '../../ui/components/glass_container.dart';
 
 class NavigationSettingsScreen extends ConsumerWidget {
   const NavigationSettingsScreen({super.key});
@@ -71,47 +71,41 @@ class NavigationSettingsScreen extends ConsumerWidget {
                   return Container(
                     key: ValueKey(tab),
                     margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceColor.withValues(alpha: 0.1),
+                    child: GlassContainer(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        width: 1,
-                      ),
-                    ),
-                    child: Material(
-                      // Added Material for ink effects if needed, or just transparency
-                      color: Colors.transparent,
-                      child: ListTile(
-                        leading: Icon(tab.icon, color: AppTheme.primaryColor),
-                        title: Text(
-                          tab.label,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontFamily:
-                                'Pacifico', // Use Pacifico as requested globally? Or standard for settings?
-                            // User asked for "Pacifico font applied globally". So yes.
-                            fontSize: 18,
+                      opacity: 0.1,
+                      blur: 10,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          leading: Icon(tab.icon, color: AppTheme.primaryColor),
+                          title: Text(
+                            tab.label,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'Pacifico',
+                              fontSize: 18,
+                            ),
                           ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CupertinoSwitch(
-                              value: isVisible,
-                              activeColor: AppTheme.primaryColor,
-                              onChanged: (value) {
-                                ref
-                                    .read(navigationProvider.notifier)
-                                    .toggleVisibility(tab);
-                              },
-                            ),
-                            const SizedBox(width: 16),
-                            const Icon(
-                              Icons.drag_handle,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ],
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CupertinoSwitch(
+                                value: isVisible,
+                                activeColor: AppTheme.primaryColor,
+                                onChanged: (value) {
+                                  ref
+                                      .read(navigationProvider.notifier)
+                                      .toggleVisibility(tab);
+                                },
+                              ),
+                              const SizedBox(width: 16),
+                              const Icon(
+                                Icons.drag_handle,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
