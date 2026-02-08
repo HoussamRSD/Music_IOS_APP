@@ -1,14 +1,26 @@
-name: iOS CI (Simulator, no signing)
+name: iOS-simulator-build
 
 on:
   push:
     branches: ["master"]
+    paths:
+      - "ios/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "lib/**"
+      - ".github/workflows/ios-sim-build.yml"
   pull_request:
     branches: ["master"]
-  workflow_dispatch:
+    paths:
+      - "ios/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "lib/**"
+      - ".github/workflows/ios-sim-build.yml"
 
 jobs:
-  ios-sim-build:
+  build-ios:
+    name: 🍏 iOS Simulator Build (no signing)
     runs-on: macos-14
 
     steps:
@@ -31,24 +43,21 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Install CocoaPods
+      - name: Install CocoaPods + pods
         run: |
           sudo gem install cocoapods -N || true
-          pod --version
-
-      - name: Pod install
-        working-directory: ios
-        run: |
+          cd ios
           pod repo update
           pod install
+          cd ..
 
-      - name: Build iOS Simulator (no signing)
+      - name: Build iOS (simulator)
         run: |
           set -o pipefail
           flutter clean
           flutter build ios --release --simulator 2>&1 | tee build_ios_simulator.log
 
-      - name: Package simulator app
+      - name: Package Runner.app (simulator)
         run: |
           APP_PATH="build/ios/iphonesimulator/Runner.app"
           if [ ! -d "$APP_PATH" ]; then
@@ -70,6 +79,3 @@ jobs:
         with:
           name: ios-build-log
           path: build_ios_simulator.log
-
-
-

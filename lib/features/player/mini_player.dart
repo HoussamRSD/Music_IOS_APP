@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/components/glass_container.dart';
 import 'now_playing_screen.dart';
 import '../player/services/audio_player_service.dart';
+import '../player/services/queue_service.dart';
 
 class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key});
@@ -17,142 +20,116 @@ class MiniPlayer extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final progress = playerState.duration.inMilliseconds > 0
-        ? playerState.position.inMilliseconds /
-              playerState.duration.inMilliseconds
-        : 0.0;
-
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          CupertinoPageRoute(builder: (context) => const NowPlayingScreen()),
+        Navigator.of(context, rootNavigator: true).push(
+          CupertinoPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const NowPlayingScreen(),
+          ),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 90), // Above bottom nav
-        height: 64,
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceColor,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: GlassContainer(
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Progress indicator (background)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
-                ),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppTheme.primaryColor.withValues(alpha: 0.3),
-                  ),
-                  minHeight: 2,
-                ),
-              ),
-            ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  // Artwork
-                  ClipRRect(
+          color: const Color(0xFF2C2C2E), // Darker glass
+          opacity: 0.8,
+          blur: 20,
+          child: Container(
+            height: 60,
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                // Artwork
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    child: currentSong.artworkPath != null
-                        ? Image.asset(
-                            currentSong.artworkPath!,
-                            width: 48,
-                            height: 48,
+                    color: AppTheme.surfaceHighlight,
+                    image: currentSong.artworkPath != null
+                        ? DecorationImage(
+                            image: FileImage(File(currentSong.artworkPath!)),
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _defaultArtwork(),
                           )
-                        : _defaultArtwork(),
+                        : null,
                   ),
-                  const SizedBox(width: 12),
-                  // Song info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          currentSong.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          currentSong.artists.isNotEmpty
-                              ? currentSong.artists.join(', ')
-                              : 'Unknown Artist',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: 13,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Play/Pause button
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: () {
-                      ref
-                          .read(audioPlayerServiceProvider.notifier)
-                          .togglePlayPause();
-                    },
-                    child: Icon(
-                      playerState.isPlaying
-                          ? CupertinoIcons.pause_fill
-                          : CupertinoIcons.play_fill,
-                      color: AppTheme.primaryColor,
-                      size: 32,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+                  child: currentSong.artworkPath == null
+                      ? Icon(
+                          CupertinoIcons.music_note,
+                          color: AppTheme.textSecondary,
+                          size: 20,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
 
-  Widget _defaultArtwork() {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(
-        CupertinoIcons.music_note,
-        color: AppTheme.primaryColor,
-        size: 24,
+                // Title
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        currentSong.title,
+                        style: AppTheme.textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        currentSong.artists.join(', '),
+                        style: AppTheme.textTheme.labelSmall?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Controls
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      child: Icon(
+                        playerState.isPlaying
+                            ? CupertinoIcons.pause_fill
+                            : CupertinoIcons.play_fill,
+                        color: AppTheme.textPrimary,
+                        size: 24,
+                      ),
+                      onPressed: () {
+                        ref
+                            .read(audioPlayerServiceProvider.notifier)
+                            .togglePlayPause();
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      child: const Icon(
+                        CupertinoIcons.forward_fill,
+                        color: AppTheme.textPrimary,
+                        size: 24,
+                      ),
+                      onPressed: () {
+                        // Use Queue Controller for navigation
+                        ref.read(queueControllerProvider.notifier).next();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
