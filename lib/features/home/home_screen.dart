@@ -20,12 +20,6 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final libraryState = ref.watch(homeSongsProvider);
-    final songs = libraryState.asData?.value ?? [];
-
-    // Mock data for "Made For You" and "Trending"
-    final recentSongs = songs.take(5).toList();
-    final madeForYou = songs.skip(5).take(5).toList();
-    final trending = songs.skip(10).take(5).toList();
 
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -33,8 +27,8 @@ class HomeScreen extends ConsumerWidget {
         slivers: [
           const CupertinoSliverNavigationBar(
             largeTitle: Text('Listen Now'),
-            backgroundColor: Color(0xCC1C1C1E), // Translucent
-            border: null, // No border for cleaner look
+            backgroundColor: Color(0xCC1C1C1E),
+            border: null,
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -48,45 +42,82 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
 
-          // Recently Played Carousel
-          if (recentSongs.isNotEmpty) ...[
-            _buildSectionHeader('Recently Played'),
-            SliverToBoxAdapter(child: _HorizontalCardList(songs: recentSongs)),
-          ],
+          // Handle different states
+          libraryState.when(
+            data: (songs) {
+              if (songs.isEmpty) {
+                return _buildEmptyState();
+              }
 
-          // Made For You Carousel
-          if (madeForYou.isNotEmpty) ...[
-            _buildSectionHeader('Made for You'),
-            SliverToBoxAdapter(
-              child: _HorizontalCardList(songs: madeForYou, isLarge: true),
+              final recentSongs = songs.take(5).toList();
+              final madeForYou = songs.skip(5).take(5).toList();
+              final trending = songs.skip(10).take(5).toList();
+
+              return SliverList(
+                delegate: SliverChildListDelegate([
+                  if (recentSongs.isNotEmpty) ...[
+                    _SectionHeader(title: 'Recently Played'),
+                    _HorizontalCardList(songs: recentSongs),
+                  ],
+                  if (madeForYou.isNotEmpty) ...[
+                    const _SectionHeader(title: 'Made for You'),
+                    _HorizontalCardList(songs: madeForYou, isLarge: true),
+                  ],
+                  if (trending.isNotEmpty) ...[
+                    const _SectionHeader(title: 'Trending Now'),
+                    _HorizontalCardList(songs: trending),
+                  ],
+                  const SizedBox(height: 100),
+                ]),
+              );
+            },
+            loading: () => const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 100),
+                child: Center(child: CupertinoActivityIndicator(radius: 20)),
+              ),
             ),
-          ],
-
-          // Trending Carousel
-          if (trending.isNotEmpty) ...[
-            _buildSectionHeader('Trending Now'),
-            SliverToBoxAdapter(child: _HorizontalCardList(songs: trending)),
-          ],
-
-          // Bottom Padding for MiniPlayer
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            error: (error, stack) => SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'Error loading songs: $error',
+                  style: AppTheme.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildEmptyState() {
+    return SliverFillRemaining(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(title, style: AppTheme.textTheme.titleLarge),
-            Icon(
-              CupertinoIcons.chevron_right,
+            const Icon(
+              CupertinoIcons.music_note_list,
+              size: 80,
               color: AppTheme.textSecondary,
-              size: 20,
+            ),
+            const SizedBox(height: 20),
+            Text('No Music Yet', style: AppTheme.textTheme.titleLarge),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                'Go to Library and tap the + button to import your music files',
+                style: AppTheme.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),
@@ -99,6 +130,30 @@ class HomeScreen extends ConsumerWidget {
     if (hour < 12) return 'Good Morning';
     if (hour < 18) return 'Good Afternoon';
     return 'Good Evening';
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: AppTheme.textTheme.titleLarge),
+          const Icon(
+            CupertinoIcons.chevron_right,
+            color: AppTheme.textSecondary,
+            size: 20,
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -141,7 +196,6 @@ class _AlbumCard extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         ref.read(audioPlayerServiceProvider.notifier).playSong(song);
-        // Open Now Playing
         Navigator.of(context, rootNavigator: true).push(
           CupertinoPageRoute(
             fullscreenDialog: true,
@@ -152,7 +206,6 @@ class _AlbumCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Artwork
           Container(
             width: size,
             height: size,
@@ -182,8 +235,6 @@ class _AlbumCard extends ConsumerWidget {
                 : null,
           ),
           const SizedBox(height: 8),
-
-          // Texts
           SizedBox(
             width: size,
             child: Column(
