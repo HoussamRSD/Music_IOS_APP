@@ -30,7 +30,10 @@ class LiquidBottomBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.darkTheme.barBackgroundColor,
             border: Border(
-              top: BorderSide(color: Colors.white.withOpacity(0.1), width: 0.5),
+              top: BorderSide(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 0.5,
+              ),
             ),
           ),
           child: SafeArea(
