@@ -37,7 +37,7 @@ class MetadataService {
       // Initialize MetadataGod if needed (safe to call)
       // MetadataGod.initialize();
 
-      final metadata = await MetadataGod.getMetadata(filePath);
+      final metadata = await MetadataGod.readMetadata(file: filePath);
 
       if (metadata != null) {
         // Extract artwork if available
