@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/data/models/song.dart';
 import '../../core/theme/app_theme.dart';
+import '../../ui/components/glass_container.dart';
 import '../library/services/file_import_service.dart';
 import '../library/data/song_repository.dart';
 import '../player/services/audio_player_service.dart';
@@ -294,12 +295,11 @@ class _SongListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
+    return GlassContainer(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      borderRadius: BorderRadius.circular(12),
+      opacity: 0.2, // Slightly more opaque for list items to be readable
+      blur: 15,
       child: CupertinoListTile(
         padding: const EdgeInsets.all(12),
         leading: song.artworkPath != null
@@ -425,11 +425,10 @@ class _SongGridTile extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: AppTheme.surfaceHighlight,
-              ),
+            child: GlassContainer(
+              borderRadius: BorderRadius.circular(12),
+              opacity: 0.1,
+              blur: 10,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: song.artworkPath != null
