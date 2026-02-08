@@ -26,7 +26,7 @@ jobs:
                   export CODE_SIGNING_ALLOWED=NO
                   export CODE_SIGNING_REQUIRED=NO
                   export CODE_SIGN_IDENTITY=""
-                  flutter build ios --release --simulator --no-codesign
+                  flutter build ios --simulator --no-codesign
 
             # Package the .app for download (zip is simplest)
             - name: Package simulator app
