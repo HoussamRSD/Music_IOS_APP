@@ -45,3 +45,11 @@ final playlistsProvider = FutureProvider<List<Playlist>>((ref) async {
   final service = ref.watch(playlistServiceProvider);
   return service.getPlaylists();
 });
+
+final playlistSongsProvider = FutureProvider.family<List<Song>, int>((
+  ref,
+  playlistId,
+) async {
+  final service = ref.watch(playlistServiceProvider);
+  return service.getSongs(playlistId);
+});

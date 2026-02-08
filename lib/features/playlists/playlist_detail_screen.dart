@@ -9,13 +9,6 @@ import '../player/services/audio_player_service.dart';
 import '../player/services/queue_service.dart';
 import 'services/playlist_service.dart';
 
-final playlistSongsProvider = FutureProvider.family<List<Song>, int>((
-  ref,
-  playlistId,
-) async {
-  return ref.watch(playlistServiceProvider).getSongs(playlistId);
-});
-
 class PlaylistDetailScreen extends ConsumerWidget {
   final Playlist playlist;
 
@@ -67,29 +60,74 @@ class PlaylistDetailScreen extends ConsumerWidget {
 
             return Column(
               children: [
-                // Play Button
+                // Play and Shuffle Buttons
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: CupertinoButton(
-                    color: AppTheme.primaryColor,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(CupertinoIcons.play_fill),
-                        SizedBox(width: 8),
-                        Text('Play All'),
-                      ],
-                    ),
-                    onPressed: () {
-                      ref
-                          .read(queueControllerProvider.notifier)
-                          .setQueue(songs);
-                      if (songs.isNotEmpty) {
-                        ref
-                            .read(audioPlayerServiceProvider.notifier)
-                            .playSong(songs.first);
-                      }
-                    },
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: CupertinoButton(
+                          color: AppTheme.primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                CupertinoIcons.play_fill,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Play',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                          onPressed: () {
+                            ref
+                                .read(queueControllerProvider.notifier)
+                                .setQueue(songs);
+                            if (songs.isNotEmpty) {
+                              ref
+                                  .read(audioPlayerServiceProvider.notifier)
+                                  .playSong(songs.first);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: CupertinoButton(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                CupertinoIcons.shuffle,
+                                color: AppTheme.primaryColor,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Shuffle',
+                                style: TextStyle(color: AppTheme.primaryColor),
+                              ),
+                            ],
+                          ),
+                          onPressed: () {
+                            final shuffled = List<Song>.from(songs)..shuffle();
+                            ref
+                                .read(queueControllerProvider.notifier)
+                                .setQueue(shuffled);
+                            if (shuffled.isNotEmpty) {
+                              ref
+                                  .read(audioPlayerServiceProvider.notifier)
+                                  .playSong(shuffled.first);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(

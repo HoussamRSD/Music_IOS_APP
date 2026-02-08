@@ -126,13 +126,16 @@ class PlaylistsTab extends ConsumerWidget {
   }
 }
 
-class _PlaylistTile extends StatelessWidget {
+class _PlaylistTile extends ConsumerWidget {
   final Playlist playlist;
 
   const _PlaylistTile({required this.playlist});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final songsAsync = ref.watch(playlistSongsProvider(playlist.id!));
+    final songCount = songsAsync.whenOrNull(data: (songs) => songs.length) ?? 0;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -162,7 +165,7 @@ class _PlaylistTile extends StatelessWidget {
           ),
         ),
         subtitle: Text(
-          '${0} songs', // TODO: Get song count
+          '$songCount ${songCount == 1 ? 'song' : 'songs'}',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.5),
             fontSize: 14,
