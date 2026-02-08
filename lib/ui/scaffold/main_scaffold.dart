@@ -28,7 +28,12 @@ class MainScaffold extends StatelessWidget {
             Positioned(
               left: 0,
               right: 0,
-              bottom: 49 + 10, // TabBar height + padding
+              bottom:
+                  49 +
+                  10 +
+                  MediaQuery.of(
+                    context,
+                  ).padding.bottom, // TabBar height + padding + safe area
               child: const MiniPlayer(),
             ),
           ],
