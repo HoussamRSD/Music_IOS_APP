@@ -10,6 +10,7 @@ import '../player/services/audio_player_service.dart';
 import '../player/services/queue_service.dart';
 import '../playlists/components/add_to_playlist_sheet.dart';
 import 'tabs/playlists_tab.dart';
+import 'tabs/artists_tab.dart';
 
 // Provider for songs list
 final songsProvider = FutureProvider<List<Song>>((ref) async {
@@ -18,7 +19,21 @@ final songsProvider = FutureProvider<List<Song>>((ref) async {
 });
 
 // Provider for view mode
-final isGridViewProvider = StateProvider<bool>((ref) => false);
+// Provider for view mode
+class GridViewNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return false;
+  }
+
+  void toggle() {
+    state = !state;
+  }
+}
+
+final isGridViewProvider = NotifierProvider<GridViewNotifier, bool>(
+  GridViewNotifier.new,
+);
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -89,12 +104,25 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           groupValue: _selectedSegment,
           children: const {
             0: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text('Songs', style: TextStyle(color: Colors.white)),
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                'Songs',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
             ),
             1: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text('Playlists', style: TextStyle(color: Colors.white)),
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                'Playlists',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+            2: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                'Artists',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
             ),
           },
           onValueChanged: (value) {
@@ -117,7 +145,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   size: 24,
                 ),
                 onPressed: () {
-                  ref.read(isGridViewProvider.notifier).state = !isGridView;
+                  ref.read(isGridViewProvider.notifier).toggle();
                 },
               )
             : null,
@@ -131,8 +159,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           ),
         ),
       ),
-      child: _selectedSegment == 0 ? const _SongsTab() : const PlaylistsTab(),
+      child: _buildTabContent(),
     );
+  }
+
+  Widget _buildTabContent() {
+    switch (_selectedSegment) {
+      case 0:
+        return const _SongsTab();
+      case 1:
+        return const PlaylistsTab();
+      case 2:
+        return const ArtistsTab();
+      default:
+        return const _SongsTab();
+    }
   }
 }
 

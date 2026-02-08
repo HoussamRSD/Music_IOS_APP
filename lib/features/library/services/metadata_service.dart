@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:metadata_god/metadata_god.dart';
-import 'package:metadata_god/metadata_god.dart';
 
 class MetadataResult {
   final String title;
