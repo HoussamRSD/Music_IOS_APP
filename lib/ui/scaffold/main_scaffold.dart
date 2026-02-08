@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/player/mini_player.dart';
-import '../components/liquid_bottom_bar.dart';
+import '../components/glass_bottom_bar.dart';
 
 class MainScaffold extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -29,16 +29,21 @@ class MainScaffold extends StatelessWidget {
               left: 0,
               right: 0,
               bottom:
-                  49 +
+                  60 +
                   10 +
-                  MediaQuery.of(
-                    context,
-                  ).padding.bottom, // TabBar height + padding + safe area
+                  MediaQuery.of(context)
+                      .padding
+                      .bottom, // BottomBar height (60) + padding + safe area
               child: const MiniPlayer(),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: GlassBottomBar(navigationShell: navigationShell),
             ),
           ],
         ),
-        bottomNavigationBar: LiquidBottomBar(navigationShell: navigationShell),
       ),
     );
   }
