@@ -1,8 +1,9 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-// import 'package:metadata_god/metadata_god.dart';
+import 'package:metadata_god/metadata_god.dart';
 
 class MetadataResult {
   final String title;
@@ -33,13 +34,9 @@ class MetadataService {
   /// Falls back to filename parsing if tag extraction fails
   Future<MetadataResult> extractMetadata(String filePath) async {
     try {
-      // Initialize MetadataGod if needed (usually safe to call repeatedly or check docs, but for safety we just call getMetadata)
-      // MetadataGod.initialize(); // Not always needed depending on version, but good practice if available.
-      // Actually v1.1.0 doesn't strictly require explicit init for single usage usually, but let's check.
-      // We will just call getMetadata.
+      // Initialize MetadataGod if needed (safe to call)
+      // MetadataGod.initialize();
 
-      /*
-      // FIXME: MetadataGod.getMetadata is failing to compile.
       final metadata = await MetadataGod.getMetadata(filePath);
 
       if (metadata != null) {
@@ -64,7 +61,6 @@ class MetadataService {
           hasLyrics: false,
         );
       }
-      */
       return await _extractFromFilename(filePath);
     } catch (e) {
       // Fallback to filename parsing
@@ -72,7 +68,6 @@ class MetadataService {
     }
   }
 
-  /*
   Future<String?> _saveArtworkToDisk(
     Uint8List artworkBytes,
     String sourcePath,
@@ -90,7 +85,6 @@ class MetadataService {
       return null;
     }
   }
-  */
 
   Future<MetadataResult> _extractFromFilename(String filePath) async {
     final fileName = path.basenameWithoutExtension(filePath);
