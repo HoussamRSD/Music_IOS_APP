@@ -66,7 +66,7 @@ class HomeScreen extends ConsumerWidget {
           // Greeting & Navigation Grid
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -77,7 +77,7 @@ class HomeScreen extends ConsumerWidget {
                       fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   _NavigationGrid(),
                 ],
               ),
@@ -122,7 +122,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 120),
+                    const SizedBox(height: 180),
                 ]),
               );
             },

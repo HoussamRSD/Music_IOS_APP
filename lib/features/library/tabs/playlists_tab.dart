@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../core/data/models/playlist.dart';
+import '../../../ui/components/tab_header.dart';
 import '../../playlists/services/playlist_service.dart';
 import '../../playlists/playlist_detail_screen.dart';
 
@@ -12,14 +13,14 @@ class PlaylistsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playlistsAsync = ref.watch(playlistsProvider);
-    final topPadding =
-        MediaQuery.of(context).padding.top + kMinInteractiveDimensionCupertino;
 
     return CustomScrollView(
       slivers: [
-        SliverPadding(
-          padding: EdgeInsets.only(top: topPadding),
-          sliver: const SliverToBoxAdapter(child: SizedBox.shrink()),
+        SliverToBoxAdapter(
+          child: TabHeader(
+            title: 'Playlists',
+            icon: CupertinoIcons.folder_open,
+          ),
         ),
         CupertinoSliverRefreshControl(
           onRefresh: () async {
@@ -82,7 +83,7 @@ class PlaylistsTab extends ConsumerWidget {
             ),
           ),
         ),
-        const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 180)),
       ],
     );
   }

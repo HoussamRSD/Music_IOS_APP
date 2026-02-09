@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/models/song.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../ui/components/glass_container.dart';
+import '../../../ui/components/tab_header.dart';
 import '../../player/services/audio_player_service.dart';
 import '../../player/services/queue_service.dart';
 import '../data/song_repository.dart';
@@ -21,8 +22,6 @@ class FavoritesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favoritesAsync = ref.watch(favoriteSongsProvider);
-    final topPadding =
-        MediaQuery.of(context).padding.top + kMinInteractiveDimensionCupertino;
 
     return favoritesAsync.when(
       data: (favorites) {
@@ -45,13 +44,27 @@ class FavoritesTab extends ConsumerWidget {
           );
         }
 
-        return ListView.builder(
-          padding: EdgeInsets.only(top: topPadding + 8, bottom: 120),
-          itemCount: favorites.length,
-          itemBuilder: (context, index) {
-            final song = favorites[index];
-            return _FavoriteSongTile(song: song);
-          },
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: TabHeader(
+                title: 'Favorites',
+                icon: CupertinoIcons.heart_fill,
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.only(bottom: 180),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final song = favorites[index];
+                    return _FavoriteSongTile(song: song);
+                  },
+                  childCount: favorites.length,
+                ),
+              ),
+            ),
+          ],
         );
       },
       loading: () =>

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../ui/components/tab_header.dart';
 import '../services/youtube_service.dart';
 import '../models/youtube_video.dart';
 import '../../player/services/audio_player_service.dart';
@@ -47,54 +48,68 @@ class YouTubeTab extends ConsumerWidget {
 
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.backgroundColor,
-      navigationBar: const CupertinoNavigationBar(
-        backgroundColor: Colors.transparent,
-        middle: Text('YouTube'),
-      ),
       child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: CupertinoSearchTextField(
-                placeholder: 'Search YouTube',
-                style: const TextStyle(color: AppTheme.textPrimary),
-                onSubmitted: (value) {
-                  ref.read(youtubeSearchQueryProvider.notifier).update(value);
-                },
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: TabHeader(
+                title: 'YouTube',
+                icon: CupertinoIcons.play_rectangle_fill,
               ),
             ),
-            Expanded(
-              child: searchResults.when(
-                data: (videos) {
-                  if (videos.isEmpty) {
-                    if (query.isEmpty) {
-                      return const Center(
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: CupertinoSearchTextField(
+                  placeholder: 'Search YouTube',
+                  style: const TextStyle(color: AppTheme.textPrimary),
+                  onSubmitted: (value) {
+                    ref.read(youtubeSearchQueryProvider.notifier).update(value);
+                  },
+                ),
+              ),
+            ),
+            searchResults.when(
+              data: (videos) {
+                if (videos.isEmpty) {
+                  if (query.isEmpty) {
+                    return SliverFillRemaining(
+                      child: Center(
                         child: Text(
                           'Search for songs on YouTube',
                           style: TextStyle(color: AppTheme.textSecondary),
                         ),
-                      );
-                    }
-                    return const Center(
+                      ),
+                    );
+                  }
+                  return SliverFillRemaining(
+                    child: Center(
                       child: Text(
                         'No results found',
                         style: TextStyle(color: AppTheme.textSecondary),
                       ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: videos.length,
-                    itemBuilder: (context, index) {
-                      final video = videos[index];
-                      return _YouTubeVideoTile(video: video);
-                    },
+                    ),
                   );
-                },
-                loading: () =>
-                    const Center(child: CupertinoActivityIndicator()),
-                error: (err, stack) => Center(
+                }
+
+                return SliverPadding(
+                  padding: const EdgeInsets.only(bottom: 180),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final video = videos[index];
+                        return _YouTubeVideoTile(video: video);
+                      },
+                      childCount: videos.length,
+                    ),
+                  ),
+                );
+              },
+              loading: () => SliverFillRemaining(
+                child: Center(child: CupertinoActivityIndicator()),
+              ),
+              error: (err, stack) => SliverFillRemaining(
+                child: Center(
                   child: Text(
                     'Error: $err',
                     style: const TextStyle(color: Colors.red),

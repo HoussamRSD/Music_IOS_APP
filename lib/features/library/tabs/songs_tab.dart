@@ -6,6 +6,7 @@ import '../../../core/data/models/song.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../ui/components/glass_container.dart';
+import '../../../ui/components/tab_header.dart';
 import '../../player/services/audio_player_service.dart';
 import '../../player/services/queue_service.dart';
 import '../../playlists/components/add_to_playlist_sheet.dart';
@@ -47,38 +48,66 @@ class SongsTab extends ConsumerWidget {
           );
         }
 
-        // Get safe area padding to account for navigation bar
-        final topPadding =
-            MediaQuery.of(context).padding.top +
-            kMinInteractiveDimensionCupertino;
-
         if (isGridView) {
-          return GridView.builder(
-            padding: EdgeInsets.fromLTRB(16, topPadding + 16, 16, 120),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 0.75,
-            ),
-            itemCount: songs.length,
-            itemBuilder: (context, index) {
-              final song = songs[index];
-              return SongGridTile(song: song);
-            },
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    TabHeader(
+                      title: 'Songs',
+                      icon: CupertinoIcons.music_note_2,
+                    ),
+                  ],
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 180),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.75,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final song = songs[index];
+                      return SongGridTile(song: song);
+                    },
+                    childCount: songs.length,
+                  ),
+                ),
+              ),
+            ],
           );
         }
 
-        return ListView.builder(
-          padding: EdgeInsets.only(
-            top: topPadding + 8,
-            bottom: 120,
-          ), // Space for nav bar and bottom nav
-          itemCount: songs.length,
-          itemBuilder: (context, index) {
-            final song = songs[index];
-            return SongListTile(song: song);
-          },
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  TabHeader(
+                    title: 'Songs',
+                    icon: CupertinoIcons.music_note_2,
+                  ),
+                ],
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.only(bottom: 180),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final song = songs[index];
+                    return SongListTile(song: song);
+                  },
+                  childCount: songs.length,
+                ),
+              ),
+            ),
+          ],
         );
       },
       loading: () =>
