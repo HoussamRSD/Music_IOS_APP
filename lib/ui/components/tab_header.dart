@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/settings/providers/font_provider.dart';
 import 'glass_container.dart';
 
-class TabHeader extends StatelessWidget {
+class TabHeader extends ConsumerWidget {
   final String title;
   final IconData icon;
   final VoidCallback? onActionPressed;
@@ -22,7 +24,8 @@ class TabHeader extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appTextStyles = ref.watch(appTextStylesProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
       child: Row(
@@ -46,7 +49,7 @@ class TabHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: AppTheme.textTheme.headlineSmall?.copyWith(
+              style: appTextStyles.titleLarge().copyWith(
                 fontWeight: FontWeight.w700,
                 fontSize: 28,
               ),

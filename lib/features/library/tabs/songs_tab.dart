@@ -164,8 +164,8 @@ class SongListTile extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(
                   File(song.artworkPath!),
-                  width: 56,
-                  height: 56,
+                  width: 64,
+                  height: 64,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) =>
                       _defaultArtwork(),
@@ -267,8 +267,8 @@ class SongListTile extends ConsumerWidget {
 
   Widget _defaultArtwork() {
     return Container(
-      width: 56,
-      height: 56,
+      width: 64,
+      height: 64,
       decoration: BoxDecoration(
         color: AppTheme.primaryColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
@@ -276,7 +276,7 @@ class SongListTile extends ConsumerWidget {
       child: Icon(
         CupertinoIcons.music_note,
         color: AppTheme.primaryColor,
-        size: 24,
+        size: 28,
       ),
     );
   }

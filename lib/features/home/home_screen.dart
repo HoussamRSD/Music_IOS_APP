@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_text_styles.dart';
 import '../../ui/components/glass_container.dart';
 import '../library/data/song_repository.dart';
 import '../library/services/file_import_service.dart';
@@ -15,6 +16,7 @@ import '../settings/settings_screen.dart';
 import '../navigation/models/navigation_tab.dart';
 import '../navigation/providers/navigation_provider.dart';
 import '../library/providers/library_providers.dart';
+import '../settings/providers/font_provider.dart';
 
 final homeSongsProvider = FutureProvider<List<Song>>((ref) async {
   final repository = ref.watch(songRepositoryProvider);
@@ -27,12 +29,13 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final libraryState = ref.watch(homeSongsProvider);
+    final appTextStyles = ref.watch(appTextStylesProvider);
 
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.backgroundColor,
       navigationBar: CupertinoNavigationBar(
         backgroundColor: Colors.transparent,
-        middle: Text('Home', style: AppTheme.textTheme.titleMedium),
+        middle: Text('Home', style: appTextStyles.titleMedium()),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -72,8 +75,7 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Text(
                     _getGreeting(),
-                    style: AppTheme.textTheme.displayMedium?.copyWith(
-                      color: AppTheme.textSecondary,
+                    style: appTextStyles.displayMedium(color: AppTheme.textSecondary).copyWith(
                       fontSize: 16,
                     ),
                   ),
@@ -89,7 +91,7 @@ class HomeScreen extends ConsumerWidget {
               if (songs.isEmpty) {
                 return SliverFillRemaining(
                   hasScrollBody: false,
-                  child: _buildEmptyState(context, ref),
+                  child: _buildEmptyState(context, ref, appTextStyles),
                 );
               }
 
@@ -225,7 +227,7 @@ class HomeScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref, AppTextStyles appTextStyles) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -242,16 +244,14 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text('Welcome to DOPLIN', style: AppTheme.textTheme.displayMedium),
+        Text('Welcome to DOPLIN', style: appTextStyles.displayMedium()),
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Text(
             'Your library is looking a bit empty. Import your music tracks to get started.',
             textAlign: TextAlign.center,
-            style: AppTheme.textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+            style: appTextStyles.bodyMedium(color: AppTheme.textSecondary),
           ),
         ),
         const SizedBox(height: 30),
@@ -262,8 +262,7 @@ class HomeScreen extends ConsumerWidget {
         const SizedBox(height: 10),
         Text(
           'Supports MP3, FLAC, M4A, WAV',
-          style: AppTheme.textTheme.bodySmall?.copyWith(
-            color: AppTheme.textSecondary.withOpacity(0.5),
+          style: appTextStyles.bodySmall(color: AppTheme.textSecondary.withOpacity(0.5)).copyWith(
             fontSize: 12,
           ),
         ),
@@ -382,7 +381,7 @@ class _NavigationGrid extends ConsumerWidget {
   }
 }
 
-class _NavigationCard extends StatelessWidget {
+class _NavigationCard extends ConsumerWidget {
   final String title;
   final IconData icon;
   final Color color;
@@ -398,7 +397,8 @@ class _NavigationCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appTextStyles = ref.watch(appTextStylesProvider);
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
@@ -423,9 +423,7 @@ class _NavigationCard extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: AppTheme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: appTextStyles.titleMedium(),
               ),
             ],
             ),
@@ -436,19 +434,20 @@ class _NavigationCard extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
+class _SectionHeader extends ConsumerWidget {
   final String title;
 
   const _SectionHeader({required this.title});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appTextStyles = ref.watch(appTextStylesProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: AppTheme.textTheme.titleLarge),
+          Text(title, style: appTextStyles.titleLarge()),
           const Icon(
             CupertinoIcons.chevron_right,
             color: AppTheme.textSecondary,
@@ -468,6 +467,7 @@ class _HorizontalCardList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final appTextStyles = ref.watch(appTextStylesProvider);
     return SizedBox(
       height: isLarge ? 280 : 220,
       child: ListView.builder(
@@ -526,18 +526,14 @@ class _HorizontalCardList extends ConsumerWidget {
                         Text(
                           song.title,
                           style: isLarge
-                              ? AppTheme.textTheme.bodyLarge
-                              : AppTheme.textTheme.bodyMedium?.copyWith(
-                                  color: AppTheme.textPrimary,
-                                ),
+                              ? appTextStyles.bodyLarge()
+                              : appTextStyles.bodyMedium(color: AppTheme.textPrimary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           song.artists.join(', '),
-                          style: AppTheme.textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
+                          style: appTextStyles.bodyMedium(color: AppTheme.textSecondary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/models/song.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../ui/components/glass_container.dart';
 import '../../../ui/components/tab_header.dart';
 import '../../player/services/audio_player_service.dart';
 import '../../player/services/queue_service.dart';
 import '../data/song_repository.dart';
+import '../../settings/providers/font_provider.dart';
 
 // Provider for favorites list
 final favoriteSongsProvider = FutureProvider<List<Song>>((ref) async {
@@ -22,6 +24,7 @@ class FavoritesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favoritesAsync = ref.watch(favoriteSongsProvider);
+    final appTextStyles = ref.watch(appTextStylesProvider);
 
     return favoritesAsync.when(
       data: (favorites) {
@@ -32,11 +35,11 @@ class FavoritesTab extends ConsumerWidget {
               children: [
                 const Icon(CupertinoIcons.heart, size: 80, color: Colors.grey),
                 const SizedBox(height: 16),
-                Text('No favorites yet', style: AppTheme.textTheme.titleLarge),
+                Text('No favorites yet', style: appTextStyles.titleLarge()),
                 const SizedBox(height: 8),
                 Text(
                   'Tap the heart icon on any song\nto add it to your favorites',
-                  style: AppTheme.textTheme.bodyMedium,
+                  style: appTextStyles.bodyMedium(),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -79,15 +82,25 @@ class FavoritesTab extends ConsumerWidget {
               color: Colors.red,
             ),
             const SizedBox(height: 16),
-            Text(
-              'Error loading favorites',
-              style: AppTheme.textTheme.titleLarge,
+            Consumer(
+              builder: (context, ref, _) {
+                final appTextStyles = ref.watch(appTextStylesProvider);
+                return Text(
+                  'Error loading favorites',
+                  style: appTextStyles.titleLarge(),
+                );
+              },
             ),
             const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              style: AppTheme.textTheme.bodySmall,
-              textAlign: TextAlign.center,
+            Consumer(
+              builder: (context, ref, _) {
+                final appTextStyles = ref.watch(appTextStylesProvider);
+                return Text(
+                  error.toString(),
+                  style: appTextStyles.bodySmall(),
+                  textAlign: TextAlign.center,
+                );
+              },
             ),
           ],
         ),
