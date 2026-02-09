@@ -4,6 +4,8 @@ class YouTubeVideo {
   final String author;
   final Duration duration;
   final String thumbnailUrl;
+  final int viewCount;
+  final DateTime? uploadDate;
 
   const YouTubeVideo({
     required this.id,
@@ -11,5 +13,7 @@ class YouTubeVideo {
     required this.author,
     required this.duration,
     required this.thumbnailUrl,
+    this.viewCount = 0,
+    this.uploadDate,
   });
 }

@@ -1,289 +1,352 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../ui/components/tab_header.dart';
-import '../services/youtube_service.dart';
-import '../models/youtube_video.dart';
-import '../../player/services/audio_player_service.dart';
 import '../../download/services/download_service.dart';
+import '../../player/services/audio_player_service.dart';
+import '../models/youtube_video.dart';
+import '../services/youtube_service.dart';
 
-class YouTubeSearchQueryNotifier extends Notifier<String> {
-  @override
-  String build() => '';
-
-  void update(String value) {
-    state = value;
-  }
-}
-
-final youtubeSearchQueryProvider =
-    NotifierProvider<YouTubeSearchQueryNotifier, String>(
-      YouTubeSearchQueryNotifier.new,
-    );
-
-final youtubeSearchResultsProvider = FutureProvider<List<YouTubeVideo>>((
-  ref,
-) async {
-  final query = ref.watch(youtubeSearchQueryProvider);
-  if (query.isEmpty) return [];
-
-  final service = ref.read(youtubeServiceProvider);
-  return await service.search(query);
-});
-
-class YouTubeTab extends ConsumerWidget {
+class YouTubeTab extends ConsumerStatefulWidget {
   const YouTubeTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final searchResults = ref.watch(youtubeSearchResultsProvider);
-    final query = ref.watch(youtubeSearchQueryProvider);
-    // Controller removed as it was unused and caused lint errors
+  ConsumerState<YouTubeTab> createState() => _YouTubeTabState();
+}
 
-    // Ensure controller cursor is at end when text changes if needed,
-    // but using a controller with watch inside build can be tricky.
-    // Better to use a simpler approach for the search bar or manageable state.
-    // We will use onSubmitted for now to trigger search.
+class _YouTubeTabState extends ConsumerState<YouTubeTab> {
+  late WebViewController _webViewController;
+  bool _isLoading = true;
 
-    return CupertinoPageScaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      child: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: TabHeader(
-                title: 'YouTube',
-                icon: CupertinoIcons.play_rectangle_fill,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: CupertinoSearchTextField(
-                  placeholder: 'Search YouTube',
-                  style: const TextStyle(color: AppTheme.textPrimary),
-                  onSubmitted: (value) {
-                    ref.read(youtubeSearchQueryProvider.notifier).update(value);
-                  },
-                ),
-              ),
-            ),
-            searchResults.when(
-              data: (videos) {
-                if (videos.isEmpty) {
-                  if (query.isEmpty) {
-                    return SliverFillRemaining(
-                      child: Center(
-                        child: Text(
-                          'Search for songs on YouTube',
-                          style: TextStyle(color: AppTheme.textSecondary),
-                        ),
-                      ),
-                    );
-                  }
-                  return SliverFillRemaining(
-                    child: Center(
-                      child: Text(
-                        'No results found',
-                        style: TextStyle(color: AppTheme.textSecondary),
-                      ),
-                    ),
-                  );
-                }
+  @override
+  void initState() {
+    super.initState();
+    _initializeWebView();
+  }
 
-                return SliverPadding(
-                  padding: const EdgeInsets.only(bottom: 180),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final video = videos[index];
-                        return _YouTubeVideoTile(video: video);
-                      },
-                      childCount: videos.length,
-                    ),
-                  ),
-                );
-              },
-              loading: () => SliverFillRemaining(
-                child: Center(child: CupertinoActivityIndicator()),
-              ),
-              error: (err, stack) => SliverFillRemaining(
-                child: Center(
-                  child: Text(
-                    'Error: $err',
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
-              ),
+  void _initializeWebView() {
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = true;
+              });
+            }
+          },
+          onPageFinished: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          },
+          onWebResourceError: (WebResourceError error) {
+            debugPrint('WebView error: ${error.description}');
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse('https://m.youtube.com'));
+  }
+
+  Future<void> _downloadCurrentVideo() async {
+    // Extract video ID from current URL
+    final url = await _webViewController.currentUrl();
+    if (url == null) {
+      _showErrorDialog('Unable to get current video');
+      return;
+    }
+
+    final videoId = _extractVideoId(url);
+    if (videoId == null) {
+      _showErrorDialog('No YouTube video detected. Please play a video first.');
+      return;
+    }
+
+    _showDownloadModeDialog(videoId);
+  }
+
+  String? _extractVideoId(String url) {
+    try {
+      if (url.contains('youtube.com/watch')) {
+        final uri = Uri.parse(url);
+        return uri.queryParameters['v'];
+      } else if (url.contains('youtu.be/')) {
+        return url.split('youtu.be/').last.split('?').first;
+      }
+    } catch (e) {
+      debugPrint('Error extracting video ID: $e');
+    }
+    return null;
+  }
+
+  void _showDownloadModeDialog(String videoId) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Download Options'),
+        message: const Text(
+          'Choose how to download this video.\n\n'
+          'Smart Mode: Identifies song, fetches metadata, lyrics & cover art\n'
+          'Safe Mode: Download as-is without identification',
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _performDownload(videoId, safeMode: false);
+            },
+            child: const Text(
+              '🧠 Smart Mode (Recommended)',
+              style: TextStyle(color: Colors.blue),
             ),
-          ],
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _performDownload(videoId, safeMode: true);
+            },
+            child: const Text(
+              '🛡️ Safe Mode',
+              style: TextStyle(color: Colors.orange),
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
         ),
       ),
     );
   }
-}
 
-class _YouTubeVideoTile extends ConsumerStatefulWidget {
-  final YouTubeVideo video;
+  Future<void> _performDownload(
+    String videoId, {
+    required bool safeMode,
+  }) async {
+    final downloadService = ref.read(downloadServiceProvider);
 
-  const _YouTubeVideoTile({required this.video});
+    if (!mounted) return;
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Downloading...'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CupertinoActivityIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                safeMode ? '🛡️ Safe Mode' : '🧠 Smart Mode',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Processing video...',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
-  @override
-  ConsumerState<_YouTubeVideoTile> createState() => _YouTubeVideoTileState();
-}
+    try {
+      final success = await downloadService.downloadVideo(
+        videoId,
+        safeMode: safeMode,
+      );
 
-class _YouTubeVideoTileState extends ConsumerState<_YouTubeVideoTile> {
-  bool _isDownloading = false;
+      if (!mounted) return;
+      Navigator.pop(context); // Close progress dialog
 
-  Future<void> _playVideo() async {
-    final service = ref.read(youtubeServiceProvider);
-    final audioUrl = await service.getAudioStreamUrl(widget.video.id);
+      if (success) {
+        _showSuccessDialog(
+          'Video downloaded successfully!',
+          'The audio file has been added to your library.',
+        );
+      } else {
+        _showErrorDialog('Failed to download video. Please try again.');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      _showErrorDialog('Download error: $e');
+    }
+  }
 
-    if (audioUrl != null) {
+  void _showSuccessDialog(String title, String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Extracts audio from current YouTube video and plays it in the background
+  Future<void> _playCurrentVideoInBackground() async {
+    final url = await _webViewController.currentUrl();
+    if (url == null) {
+      _showErrorDialog('Unable to get current page URL');
+      return;
+    }
+
+    final videoId = _extractVideoId(url);
+    if (videoId == null) {
+      _showErrorDialog('No YouTube video detected. Navigate to a video first.');
+      return;
+    }
+
+    // Show loading indicator
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const CupertinoAlertDialog(
+        title: Text('Loading Audio...'),
+        content: Padding(
+          padding: EdgeInsets.only(top: 16.0),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
+    );
+
+    try {
+      final youtubeService = ref.read(youtubeServiceProvider);
+
+      // Get audio stream URL and video info in parallel
+      final results = await Future.wait([
+        youtubeService.getAudioStreamUrl(videoId),
+        youtubeService.getVideoInfo(videoId),
+      ]);
+
+      final audioUrl = results[0] as String?;
+      final videoInfo = results[1] as YouTubeVideo?;
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (audioUrl == null || videoInfo == null) {
+        _showErrorDialog('Could not load audio stream. Please try again.');
+        return;
+      }
+
+      // Play audio in background
       ref
           .read(audioPlayerServiceProvider.notifier)
           .playYouTubeVideo(
             audioUrl,
-            widget.video.title,
-            widget.video.author,
-            widget.video.thumbnailUrl,
+            videoInfo.title,
+            videoInfo.author,
+            videoInfo.thumbnailUrl,
           );
-    } else {
-      if (mounted) {
-        showCupertinoDialog(
-          context: context,
-          builder: (ctx) => CupertinoAlertDialog(
-            title: const Text('Error'),
-            content: const Text('Could not load audio stream.'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.pop(ctx),
-              ),
-            ],
-          ),
-        );
-      }
-    }
-  }
 
-  Future<void> _downloadVideo() async {
-    setState(() => _isDownloading = true);
-
-    // Show Toast/Snackbar
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Starting download...')));
-
-    final downloadService = ref.read(downloadServiceProvider);
-    final success = await downloadService.downloadVideo(widget.video.id);
-
-    if (mounted) {
-      setState(() => _isDownloading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? 'Download complete!' : 'Download failed.'),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
+      // Show success feedback
+      _showSuccessDialog(
+        'Now Playing',
+        'Audio is playing in the background. You can minimize the app.',
       );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      _showErrorDialog('Error loading audio: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _playVideo,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        color: Colors.transparent,
-        child: Row(
+    return CupertinoPageScaffold(
+      backgroundColor: AppTheme.backgroundColor,
+      child: SafeArea(
+        child: Stack(
           children: [
-            // Thumbnail
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                widget.video.thumbnailUrl,
-                width: 80,
-                height: 45,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 80,
-                  height: 45,
-                  color: Colors.grey[800],
-                  child: const Icon(
-                    CupertinoIcons.music_note,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.video.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.video.author,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Duration & Download
-            Row(
+            Column(
               children: [
-                Text(
-                  _formatDuration(widget.video.duration),
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
+                TabHeader(
+                  title: 'YouTube',
+                  icon: CupertinoIcons.play_rectangle_fill,
+                  actionButton: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Play in Background button
+                      CupertinoButton(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        onPressed: _playCurrentVideoInBackground,
+                        child: const Icon(
+                          CupertinoIcons.play_circle_fill,
+                          size: 26,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                      // Download button
+                      CupertinoButton(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        onPressed: _downloadCurrentVideo,
+                        child: const Icon(
+                          CupertinoIcons.cloud_download,
+                          size: 24,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                if (_isDownloading)
-                  const CupertinoActivityIndicator(radius: 8)
-                else
-                  GestureDetector(
-                    onTap: _downloadVideo,
-                    child: const Icon(
-                      CupertinoIcons.cloud_download,
-                      color: AppTheme.primaryColor,
-                      size: 20,
-                    ),
-                  ),
+                Expanded(child: WebViewWidget(controller: _webViewController)),
               ],
             ),
+            if (_isLoading)
+              Positioned(
+                top: 60,
+                left: 0,
+                right: 0,
+                child: LinearProgressIndicator(
+                  minHeight: 3,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation(
+                    AppTheme.primaryColor.withOpacity(0.5),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
-  }
-
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    if (duration.inHours > 0) {
-      return '${duration.inHours}:$minutes:$seconds';
-    }
-    return '$minutes:$seconds';
   }
 }

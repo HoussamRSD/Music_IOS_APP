@@ -16,6 +16,8 @@ class YouTubeService {
               author: video.author,
               duration: video.duration ?? Duration.zero,
               thumbnailUrl: video.thumbnails.lowResUrl,
+              viewCount: video.engagement.viewCount,
+              uploadDate: video.publishDate,
             ),
           )
           .toList();
@@ -46,6 +48,8 @@ class YouTubeService {
         author: video.author,
         thumbnailUrl: video.thumbnails.highResUrl,
         duration: video.duration ?? Duration.zero,
+        viewCount: video.engagement.viewCount,
+        uploadDate: video.publishDate,
       );
     } catch (e) {
       return null;
