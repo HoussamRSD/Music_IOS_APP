@@ -17,6 +17,14 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Show environment diagnostics
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          flutter --version
+          xcodebuild -version || true
+          which pod || true
+          pod --version || true
+
       - name: Flutter pub get
         run: flutter pub get
 
@@ -24,17 +32,22 @@ jobs:
         run: pod repo update
         working-directory: ios
 
-      - name: Build IPA (no code signing)
+      - name: Build IPA (no code signing, verbose)
         run: |
+          set -x
           export CODE_SIGNING_ALLOWED=NO
           export CODE_SIGNING_REQUIRED=NO
           export CODE_SIGN_IDENTITY=""
           flutter pub get
-          flutter build ipa --release --no-codesign
+          flutter build ipa --release --no-codesign -v
+        timeout-minutes: 60
 
       - name: Create IPA (use built .ipa or fallback)
         run: |
           set -e
+          echo "Listing build/ios contents for debugging"
+          ls -la build/ios || true
+          ls -la build/ios/ipa || true
           # If flutter produced an .ipa, use it. Otherwise fall back to zipping the Runner.app
           if [ -f build/ios/ipa/Runner.ipa ]; then
             echo "Found build/ios/ipa/Runner.ipa — copying to FlutterIpaExport.ipa"
