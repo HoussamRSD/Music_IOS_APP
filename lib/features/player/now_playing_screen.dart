@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/data/models/lyrics.dart';
 import '../../core/theme/app_theme.dart';
+import '../library/data/song_repository.dart';
+import '../library/library_screen.dart';
 import '../lyrics/services/lyrics_service.dart';
 import '../lyrics/lyrics_editor_screen.dart';
+import '../playlists/components/add_to_playlist_sheet.dart';
 import 'components/lyrics_view.dart';
 import 'services/audio_player_service.dart';
 import 'services/queue_service.dart';
@@ -33,16 +36,24 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
+  String _formatRemainingTime(Duration position, Duration total) {
+    final remaining = total - position;
+    final minutes = remaining.inMinutes;
+    final seconds = remaining.inSeconds.remainder(60);
+    return '-$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final playerState = ref.watch(audioPlayerServiceProvider);
     final currentSong = playerState.currentSong;
     final hasNext = ref.watch(hasNextSongProvider);
     final hasPrevious = ref.watch(hasPreviousSongProvider);
+    final shuffleEnabled = ref.watch(shuffleEnabledProvider);
+    final repeatMode = ref.watch(repeatModeProvider);
     final lyricsAsync = ref.watch(currentSongLyricsProvider);
 
     if (currentSong == null) {
-      // Shouldn't happen, but handle gracefully
       Navigator.of(context).pop();
       return const SizedBox.shrink();
     }
@@ -52,85 +63,31 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // Header with close button
+            // Header - minimal
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: const Icon(
-                      CupertinoIcons.chevron_down,
-                      color: Colors.white,
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const Text(
-                    'Now Playing',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  const Spacer(),
+                  Container(
+                    width: 40,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        child: const Icon(
-                          CupertinoIcons.pencil,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        onPressed: () async {
-                          // Navigate to Editor
-                          // if (currentSong == null) return; // Removed redundant check
-
-                          final lyrics =
-                              lyricsAsync.value; // Get current loaded lyrics
-
-                          await Navigator.of(context).push(
-                            CupertinoPageRoute(
-                              builder: (context) => LyricsEditorScreen(
-                                song: currentSong,
-                                initialLyrics: lyrics,
-                              ),
-                            ),
-                          );
-
-                          // Refresh lyrics after edit
-                          ref.invalidate(currentSongLyricsProvider);
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      // Lyrics Toggle Button
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        child: Icon(
-                          CupertinoIcons.text_quote,
-                          color: _showLyrics
-                              ? AppTheme.primaryColor
-                              : Colors.white,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _showLyrics = !_showLyrics;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
+                  const Spacer(),
                 ],
               ),
             ),
 
-            const Spacer(),
+            const SizedBox(height: 16),
 
-            // Content Area (Artwork or Lyrics)
+            // Artwork
             Expanded(
-              flex: 10,
+              flex: 5,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 child: _showLyrics
@@ -139,7 +96,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                           if (lyrics == null) {
                             return const Center(
                               child: Text(
-                                'No lyrics found',
+                                'No lyrics available',
                                 style: TextStyle(color: Colors.white54),
                               ),
                             );
@@ -167,101 +124,78 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                         ),
                       )
                     : Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
                         child: AspectRatio(
                           aspectRatio: 1,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: currentSong.artworkPath != null
-                                ? Image.file(
-                                    File(currentSong.artworkPath!),
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            _defaultArtwork(),
-                                  )
-                                : _defaultArtwork(),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 30,
+                                  offset: const Offset(0, 15),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: currentSong.artworkPath != null
+                                  ? Image.file(
+                                      File(currentSong.artworkPath!),
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              _defaultArtwork(),
+                                    )
+                                  : _defaultArtwork(),
+                            ),
                           ),
                         ),
                       ),
               ),
             ),
 
-            const SizedBox(height: 40),
-
-            // Song Info (Hidden if Lyrics shown? Maybe kept for context)
-            if (!_showLyrics)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Column(
-                  children: [
-                    Text(
-                      currentSong.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      currentSong.artists.isNotEmpty
-                          ? currentSong.artists.join(', ')
-                          : 'Unknown Artist',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 18,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (currentSong.album != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        currentSong.album!,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
             const SizedBox(height: 32),
 
             // Progress Slider
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  CupertinoSlider(
-                    value: playerState.duration.inMilliseconds > 0
-                        ? playerState.position.inMilliseconds /
-                              playerState.duration.inMilliseconds
-                        : 0.0,
-                    onChanged: (value) {
-                      final position = Duration(
-                        milliseconds:
-                            (value * playerState.duration.inMilliseconds)
-                                .toInt(),
-                      );
-                      ref
-                          .read(audioPlayerServiceProvider.notifier)
-                          .seek(position);
-                    },
-                    activeColor: AppTheme.primaryColor,
+                  SliderTheme(
+                    data: SliderThemeData(
+                      trackHeight: 4,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 14,
+                      ),
+                      activeTrackColor: Colors.white,
+                      inactiveTrackColor: Colors.white.withValues(alpha: 0.3),
+                      thumbColor: Colors.white,
+                      overlayColor: Colors.white.withValues(alpha: 0.2),
+                    ),
+                    child: Slider(
+                      value: playerState.duration.inMilliseconds > 0
+                          ? playerState.position.inMilliseconds /
+                                playerState.duration.inMilliseconds
+                          : 0.0,
+                      onChanged: (value) {
+                        final position = Duration(
+                          milliseconds:
+                              (value * playerState.duration.inMilliseconds)
+                                  .toInt(),
+                        );
+                        ref
+                            .read(audioPlayerServiceProvider.notifier)
+                            .seek(position);
+                      },
+                    ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -269,14 +203,19 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                           _formatDuration(playerState.position),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: 13,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         Text(
-                          _formatDuration(playerState.duration),
+                          _formatRemainingTime(
+                            playerState.position,
+                            playerState.duration,
+                          ),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: 13,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -286,15 +225,65 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
               ),
             ),
 
+            const SizedBox(height: 16),
+
+            // Song Info
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  Text(
+                    currentSong.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${currentSong.artists.isNotEmpty ? currentSong.artists.join(', ') : 'Unknown Artist'}${currentSong.album != null ? ' — ${currentSong.album}' : ''}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 24),
 
-            // Playback Controls
+            // Main Controls: Shuffle | Previous | Play/Pause | Next | Repeat
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // Previous button
+                  // Shuffle
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      ref
+                          .read(queueControllerProvider.notifier)
+                          .toggleShuffle();
+                    },
+                    child: Icon(
+                      CupertinoIcons.shuffle,
+                      size: 24,
+                      color: shuffleEnabled
+                          ? AppTheme.primaryColor
+                          : Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+
+                  // Previous
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: hasPrevious
@@ -312,39 +301,31 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                         : null,
                     child: Icon(
                       CupertinoIcons.backward_fill,
-                      size: 36,
+                      size: 40,
                       color: hasPrevious
                           ? Colors.white
                           : Colors.white.withValues(alpha: 0.3),
                     ),
                   ),
 
-                  // Play/Pause button
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.primaryColor,
-                    ),
-                    child: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () {
-                        ref
-                            .read(audioPlayerServiceProvider.notifier)
-                            .togglePlayPause();
-                      },
-                      child: Icon(
-                        playerState.isPlaying
-                            ? CupertinoIcons.pause_fill
-                            : CupertinoIcons.play_fill,
-                        color: Colors.white,
-                        size: 36,
-                      ),
+                  // Play/Pause
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      ref
+                          .read(audioPlayerServiceProvider.notifier)
+                          .togglePlayPause();
+                    },
+                    child: Icon(
+                      playerState.isPlaying
+                          ? CupertinoIcons.pause_fill
+                          : CupertinoIcons.play_fill,
+                      color: Colors.white,
+                      size: 56,
                     ),
                   ),
 
-                  // Next button
+                  // Next
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: hasNext
@@ -360,10 +341,131 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                         : null,
                     child: Icon(
                       CupertinoIcons.forward_fill,
-                      size: 36,
+                      size: 40,
                       color: hasNext
                           ? Colors.white
                           : Colors.white.withValues(alpha: 0.3),
+                    ),
+                  ),
+
+                  // Repeat
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      ref
+                          .read(queueControllerProvider.notifier)
+                          .cycleRepeatMode();
+                    },
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          CupertinoIcons.repeat,
+                          size: 24,
+                          color: repeatMode != RepeatMode.off
+                              ? AppTheme.primaryColor
+                              : Colors.white.withValues(alpha: 0.8),
+                        ),
+                        if (repeatMode == RepeatMode.one)
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryColor,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                '1',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Secondary Controls: Heart | Speaker | More
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Heart (Favorite)
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () async {
+                      await ref
+                          .read(songRepositoryProvider)
+                          .toggleFavorite(
+                            currentSong.id!,
+                            !currentSong.isFavorite,
+                          );
+                      ref.invalidate(songsProvider);
+                      // Force refresh of current song state
+                      ref.invalidate(currentSongProvider);
+                    },
+                    child: Icon(
+                      currentSong.isFavorite
+                          ? CupertinoIcons.heart_fill
+                          : CupertinoIcons.heart,
+                      size: 24,
+                      color: currentSong.isFavorite
+                          ? AppTheme.primaryColor
+                          : Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+
+                  // Speaker / AirPlay
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          CupertinoIcons.speaker_2,
+                          size: 18,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Speaker',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // More options
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      _showMoreOptions(context, ref, currentSong);
+                    },
+                    child: Icon(
+                      CupertinoIcons.ellipsis_circle_fill,
+                      size: 24,
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -371,6 +473,185 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
             ),
 
             const Spacer(),
+
+            // Bottom Bar: Queue | Collapse | Lyrics
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Queue
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      _showQueueSheet(context, ref);
+                    },
+                    child: Icon(
+                      CupertinoIcons.list_bullet,
+                      size: 24,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+
+                  // Collapse
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Icon(
+                      CupertinoIcons.chevron_down,
+                      size: 28,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+
+                  // Lyrics
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      setState(() {
+                        _showLyrics = !_showLyrics;
+                      });
+                    },
+                    child: Icon(
+                      CupertinoIcons.text_quote,
+                      size: 24,
+                      color: _showLyrics
+                          ? AppTheme.primaryColor
+                          : Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMoreOptions(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic currentSong,
+  ) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            child: const Text('Add to Playlist'),
+            onPressed: () {
+              Navigator.pop(context);
+              showCupertinoModalPopup(
+                context: context,
+                builder: (context) => AddToPlaylistSheet(song: currentSong),
+              );
+            },
+          ),
+          CupertinoActionSheetAction(
+            child: const Text('Edit Lyrics'),
+            onPressed: () async {
+              Navigator.pop(context);
+              final lyrics = ref.read(currentSongLyricsProvider).value;
+              await Navigator.of(context).push(
+                CupertinoPageRoute(
+                  builder: (context) => LyricsEditorScreen(
+                    song: currentSong,
+                    initialLyrics: lyrics,
+                  ),
+                ),
+              );
+              ref.invalidate(currentSongLyricsProvider);
+            },
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          child: const Text('Cancel'),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _showQueueSheet(BuildContext context, WidgetRef ref) {
+    final queueState = ref.read(queueControllerProvider);
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Up Next',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: const Text('Done'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: Colors.white24, height: 1),
+            Expanded(
+              child: ListView.builder(
+                itemCount: queueState.queue.length,
+                itemBuilder: (context, index) {
+                  final song = queueState.queue[index];
+                  final isPlaying = index == queueState.currentIndex;
+                  return CupertinoListTile(
+                    backgroundColor: isPlaying
+                        ? AppTheme.primaryColor.withValues(alpha: 0.2)
+                        : Colors.transparent,
+                    leading: isPlaying
+                        ? const Icon(
+                            CupertinoIcons.play_fill,
+                            color: AppTheme.primaryColor,
+                            size: 16,
+                          )
+                        : Text(
+                            '${index + 1}',
+                            style: const TextStyle(color: Colors.white54),
+                          ),
+                    title: Text(
+                      song.title,
+                      style: TextStyle(
+                        color: isPlaying ? AppTheme.primaryColor : Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      song.artists.join(', '),
+                      style: const TextStyle(color: Colors.white54),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () {
+                      ref.read(queueControllerProvider.notifier).jumpTo(index);
+                      ref
+                          .read(audioPlayerServiceProvider.notifier)
+                          .playSong(song);
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -381,13 +662,13 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.primaryColor.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
         child: Icon(
           CupertinoIcons.music_note_2,
           color: AppTheme.primaryColor,
-          size: 120,
+          size: 100,
         ),
       ),
     );
