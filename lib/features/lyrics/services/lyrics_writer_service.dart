@@ -11,7 +11,15 @@ class LyricsWriterService {
     try {
       // Read existing metadata
       final tag = await _tagger.getAllTags(filePath);
-      if (tag == null) return false;
+      // Note: If reading fails (e.g. file locked), we can't preserve tags.
+      // But we can try to write anyway if we accept risk, or fail.
+      if (tag == null) {
+        developer.log(
+          'Could not read tags for $filePath. File might be locked or corrupt.',
+          name: 'LyricsWriterService',
+        );
+        return false;
+      }
 
       // Create updated tag with new lyrics
       final updatedTag = Tag(

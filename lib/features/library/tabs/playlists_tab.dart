@@ -6,6 +6,7 @@ import '../../../core/data/models/playlist.dart';
 import '../../../ui/components/tab_header.dart';
 import '../../playlists/services/playlist_service.dart';
 import '../../playlists/playlist_detail_screen.dart';
+import '../../settings/providers/font_provider.dart';
 
 class PlaylistsTab extends ConsumerWidget {
   const PlaylistsTab({super.key});
@@ -13,6 +14,7 @@ class PlaylistsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playlistsAsync = ref.watch(playlistsProvider);
+    final appTextStyles = ref.watch(appTextStylesProvider);
 
     return CustomScrollView(
       slivers: [
@@ -40,7 +42,7 @@ class PlaylistsTab extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Text(
                     'New Playlist',
-                    style: TextStyle(
+                    style: appTextStyles.custom(
                       color: AppTheme.primaryColor,
                       fontWeight: FontWeight.w600,
                     ),

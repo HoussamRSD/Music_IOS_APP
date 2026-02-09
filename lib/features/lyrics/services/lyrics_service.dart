@@ -99,6 +99,11 @@ class LyricsService {
     return lyrics;
   }
 
+  /// Manually save lyrics to database (e.g. after editing)
+  Future<void> saveLyrics(Lyrics lyrics) async {
+    await _repository.saveLyrics(lyrics);
+  }
+
   Future<String?> _findLocalLrc(String audioPath) async {
     try {
       final lrcPath = path.setExtension(audioPath, '.lrc');

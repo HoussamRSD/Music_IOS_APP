@@ -12,7 +12,7 @@ import 'features/library/providers/library_providers.dart';
 import 'features/settings/providers/font_provider.dart';
 import 'ui/scaffold/main_scaffold.dart';
 import 'features/artists/screens/artist_details_screen.dart';
-import 'features/youtube/ui/youtube_webview_screen.dart';
+import 'features/youtube/ui/youtube_tab.dart';
 
 class GlassApp extends ConsumerStatefulWidget {
   const GlassApp({super.key});
@@ -80,7 +80,7 @@ class _GlassAppState extends ConsumerState<GlassApp> {
               routes: [
                 GoRoute(
                   path: '/youtube',
-                  builder: (context, state) => const YouTubeWebViewScreen(),
+                  builder: (context, state) => const YouTubeTab(),
                 ),
               ],
             ),

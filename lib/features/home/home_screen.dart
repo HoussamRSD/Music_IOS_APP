@@ -66,6 +66,9 @@ class HomeScreen extends ConsumerWidget {
       ),
       child: CustomScrollView(
         slivers: [
+          const SliverPadding(
+            padding: EdgeInsets.only(top: 20),
+          ), // Added top padding
           // Greeting & Navigation Grid
           SliverToBoxAdapter(
             child: Padding(

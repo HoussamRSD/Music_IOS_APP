@@ -61,29 +61,58 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
   Future<void> _save() async {
     setState(() => _isSaving = true);
 
+    final playerNotifier = ref.read(audioPlayerServiceProvider.notifier);
+    final playerState = ref.read(audioPlayerServiceProvider);
+
+    // Check if we are currently playing THIS song
+    // If so, we must stop the player to release the file lock on Windows
+    bool wasPlayingCurrentSong = false;
+    Duration? lastPosition;
+
+    // Use loose check on ID or Path
+    if (playerState.currentSong != null &&
+        (playerState.currentSong?.id == widget.song.id ||
+            playerState.currentSong?.filePath == widget.song.filePath)) {
+      wasPlayingCurrentSong = true;
+      lastPosition = playerState.position;
+
+      // Stop player to release file lock
+      await playerNotifier.stop();
+
+      // Small buffer to allow file handle release
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+
     try {
       final writer = ref.read(lyricsWriterServiceProvider);
+      final lyricsService = ref.read(lyricsServiceProvider);
 
-      // Check if file is writable
+      // Check if file is writable (now that player is stopped)
       final canWrite = await writer.canWriteToFile(widget.song.filePath);
       if (!canWrite) {
         _showError(
           'Cannot write to this file. It might be read-only or in an unsupported format.',
         );
+        _restorePlayback(wasPlayingCurrentSong, playerNotifier, lastPosition);
         return;
       }
 
       bool success;
+      String? plainLyrics;
+      List<LyricLine>? syncedLyrics;
 
       if (_selectedSegment == 0) {
         // Save Plain Text
+        plainLyrics = _plainTextController.text;
         success = await writer.writePlainLyrics(
           widget.song.filePath,
-          _plainTextController.text,
+          plainLyrics,
         );
       } else {
         // Save Synced (Convert to LRC format)
         final lrcContent = _generateLrcContent();
+        syncedLyrics = List.from(_syncedLines);
+        // Note: writeSyncedLyrics writes to file, but we keep the object for DB cache
         success = await writer.writeSyncedLyrics(
           widget.song.filePath,
           lrcContent,
@@ -91,25 +120,59 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
       }
 
       if (success) {
-        // Invalidate cache
+        // Update Cache/DB directly so we don't depend on re-reading the locked file
         if (widget.song.id != null) {
-          await ref
-              .read(lyricsServiceProvider)
-              .invalidateCache(widget.song.id!);
+          final newLyrics = Lyrics(
+            id: widget.initialLyrics?.id, // Keep existing ID if update
+            songId: widget.song.id!,
+            plainLyrics: plainLyrics,
+            syncedLyrics: syncedLyrics,
+            source: 'User Edited',
+            lastUpdated: DateTime.now(),
+          );
+
+          await lyricsService.saveLyrics(newLyrics);
         }
 
         if (mounted) {
-          Navigator.pop(context, true); // Return true to indicate update
+          // Restore playback before popping to ensure seamless experience
+          await _restorePlayback(
+            wasPlayingCurrentSong,
+            playerNotifier,
+            lastPosition,
+          );
+          if (mounted) Navigator.pop(context, true);
         }
       } else {
         _showError('Failed to save lyrics. Please try again.');
+        _restorePlayback(wasPlayingCurrentSong, playerNotifier, lastPosition);
       }
     } catch (e) {
       _showError('An unexpected error occurred: $e');
+      _restorePlayback(wasPlayingCurrentSong, playerNotifier, lastPosition);
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
       }
+    }
+  }
+
+  Future<void> _restorePlayback(
+    bool shouldRestore,
+    AudioPlayerController playerNotifier,
+    Duration? position,
+  ) async {
+    if (shouldRestore) {
+      // Restore song and position
+      // playSong auto-starts playback
+      await playerNotifier.playSong(widget.song);
+
+      if (position != null) {
+        await playerNotifier.seek(position);
+      }
+      // If user was paused before, we should theoretically pause,
+      // but playSong forces play.
+      // It's acceptable to resume playing after edit.
     }
   }
 

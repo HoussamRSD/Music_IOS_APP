@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/models/song.dart';
+import '../../lyrics/services/lyrics_service.dart';
 import 'audio_handler.dart';
 
 class PlayerState {
@@ -81,6 +82,19 @@ class AudioPlayerController extends Notifier<PlayerState> {
   Future<void> playSong(Song song) async {
     try {
       state = state.copyWith(currentSong: song, isLoading: true);
+
+      // Pre-fetch lyrics to cache them before file is locked by player (Fix for Windows)
+      // We don't await this to avoid delaying playback start significantly,
+      // but we start it before the handler locks the file.
+      // Actually, we SHOULD await it if we want to guarantee cache hit,
+      // but waiting might delay UI. However, getLyrics checks DB first (fast).
+      // If DB miss, it reads file. Reading file takes ~10-50ms.
+      // So awaiting is safe and ensures cache is populated.
+      try {
+        await ref.read(lyricsServiceProvider).getLyrics(song);
+      } catch (e) {
+        // Ignore errors during pre-fetch
+      }
 
       if (_audioHandler != null) {
         await _audioHandler!.playSong(song);

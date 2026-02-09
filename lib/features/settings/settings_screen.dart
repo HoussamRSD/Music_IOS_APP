@@ -1,20 +1,27 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ui/components/glass_container.dart';
 import 'navigation_settings_screen.dart';
 import 'font_settings_screen.dart';
+import 'providers/font_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appTextStyles = ref.watch(appTextStylesProvider);
+
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.backgroundColor,
-      navigationBar: const CupertinoNavigationBar(
+      navigationBar: CupertinoNavigationBar(
         backgroundColor: Colors.transparent,
-        middle: Text('Settings', style: TextStyle(color: Colors.white)),
+        middle: Text(
+          'Settings',
+          style: appTextStyles.titleMedium(color: Colors.white),
+        ),
         previousPageTitle: 'Back',
       ),
       child: SafeArea(
