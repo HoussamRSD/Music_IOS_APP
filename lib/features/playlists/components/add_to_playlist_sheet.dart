@@ -101,7 +101,6 @@ class AddToPlaylistSheet extends ConsumerWidget {
                   ],
                 ),
                 onPressed: () {
-                  Navigator.pop(context);
                   _showCreatePlaylistDialog(context, ref);
                 },
               ),
@@ -150,7 +149,11 @@ class AddToPlaylistSheet extends ConsumerWidget {
                 }
 
                 ref.invalidate(playlistsProvider);
+
+                // Close the dialog first
                 if (dialogContext.mounted) Navigator.pop(dialogContext);
+                // Then close the sheet
+                if (context.mounted) Navigator.pop(context);
               }
             },
           ),

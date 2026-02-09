@@ -8,6 +8,7 @@ import 'features/library/library_screen.dart';
 import 'features/search/search_screen.dart';
 import 'features/navigation/providers/navigation_provider.dart';
 import 'features/library/providers/library_providers.dart';
+import 'features/settings/providers/font_provider.dart';
 import 'ui/scaffold/main_scaffold.dart';
 
 class GlassApp extends ConsumerStatefulWidget {
@@ -70,6 +71,7 @@ class _GlassAppState extends ConsumerState<GlassApp> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(navigationProvider);
+    final selectedFont = ref.watch(fontProvider);
 
     // Navigate to default tab after settings are loaded (only once)
     if (!_initialNavigationDone) {
@@ -93,7 +95,7 @@ class _GlassAppState extends ConsumerState<GlassApp> {
 
     return CupertinoApp.router(
       title: 'DOPLIN',
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.getDarkTheme(selectedFont.fontFamily),
       routerConfig: _router,
     );
   }

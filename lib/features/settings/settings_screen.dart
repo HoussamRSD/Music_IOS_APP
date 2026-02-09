@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ui/components/glass_container.dart';
 import 'navigation_settings_screen.dart';
+import 'font_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -35,6 +36,18 @@ class SettingsScreen extends StatelessWidget {
                           CupertinoPageRoute(
                             builder: (context) =>
                                 const NavigationSettingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildSettingsItem(
+                      icon: CupertinoIcons.textformat,
+                      title: 'Font Style',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          CupertinoPageRoute(
+                            builder: (context) => const FontSettingsScreen(),
                           ),
                         );
                       },
