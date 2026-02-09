@@ -49,6 +49,50 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   // int _selectedSegment = 0; // Removed local state
 
+  void _showImportOptions() {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Add Music'),
+        message: const Text('Choose how to add music to your library'),
+        actions: [
+          CupertinoActionSheetAction(
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.folder, size: 20),
+                SizedBox(width: 8),
+                Text('Import from Files'),
+              ],
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _importFiles();
+            },
+          ),
+          CupertinoActionSheetAction(
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.arrow_clockwise, size: 20),
+                SizedBox(width: 8),
+                Text('Scan Music Folder'),
+              ],
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _scanMusicFolder();
+            },
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          child: const Text('Cancel'),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
   Future<void> _importFiles() async {
     try {
       final importService = ref.read(fileImportServiceProvider);
@@ -95,6 +139,76 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
   }
 
+  Future<void> _scanMusicFolder() async {
+    try {
+      final importService = ref.read(fileImportServiceProvider);
+
+      // Show loading indicator
+      showCupertinoDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CupertinoActivityIndicator(color: Colors.white, radius: 16),
+        ),
+      );
+
+      final songs = await importService.scanMusicDirectory();
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Dismiss loading
+
+      if (songs.isEmpty) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Scan Complete'),
+            content: const Text('No new music files found in the folder.'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      // Refresh the songs list
+      ref.invalidate(songsProvider);
+
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Scan Complete'),
+          content: Text('Found and imported ${songs.length} new song(s)'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Dismiss loading if shown
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Scan Failed'),
+          content: Text('An error occurred: $e'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isGridView = ref.watch(isGridViewProvider);
@@ -122,7 +236,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           children: [
             CupertinoButton(
               padding: EdgeInsets.zero,
-              onPressed: _importFiles,
+              onPressed: _showImportOptions,
               child: const Icon(
                 CupertinoIcons.arrow_down_doc,
                 color: AppTheme.primaryColor,

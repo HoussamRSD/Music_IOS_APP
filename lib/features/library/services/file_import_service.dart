@@ -115,6 +115,81 @@ class FileImportService {
     await File(sourcePath).copy(finalPath);
     return finalPath;
   }
+
+  /// Get the music directory path (useful for showing to users)
+  Future<String> getMusicDirectoryPath() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    return path.join(appDir.path, 'Music');
+  }
+
+  /// Scan the music directory for new audio files that aren't in the database
+  /// This allows users to copy-paste files directly into the app's folder
+  Future<List<Song>> scanMusicDirectory() async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final musicDir = Directory(path.join(appDir.path, 'Music'));
+
+      // Create directory if it doesn't exist
+      if (!await musicDir.exists()) {
+        await musicDir.create(recursive: true);
+        return []; // No files to scan
+      }
+
+      // Get all existing file paths from database
+      final existingSongs = await _songRepository.getAllSongs();
+      final existingPaths = existingSongs.map((s) => s.filePath).toSet();
+
+      final List<Song> importedSongs = [];
+      final supportedExtensions = [
+        '.mp3',
+        '.m4a',
+        '.aac',
+        '.wav',
+        '.flac',
+        '.ogg',
+      ];
+
+      // List all files in music directory
+      await for (final entity in musicDir.list(recursive: true)) {
+        if (entity is! File) continue;
+
+        final ext = path.extension(entity.path).toLowerCase();
+        if (!supportedExtensions.contains(ext)) continue;
+
+        // Skip if already in database
+        if (existingPaths.contains(entity.path)) continue;
+
+        try {
+          // Extract metadata and create song
+          final metadata = await _metadataService.extractMetadata(entity.path);
+          final song = Song(
+            title: metadata.title,
+            album: metadata.album,
+            artists: metadata.artists,
+            duration: metadata.duration,
+            trackNumber: metadata.trackNumber,
+            year: metadata.year,
+            genre: metadata.genre,
+            filePath: entity.path,
+            artworkPath: metadata.artworkPath,
+            addedAt: DateTime.now(),
+            hasEmbeddedLyrics: metadata.hasLyrics,
+          );
+
+          final songId = await _songRepository.addSong(song);
+          importedSongs.add(song.copyWith(id: songId));
+          debugPrint('Imported from scan: ${song.title}');
+        } catch (e) {
+          debugPrint('Error processing scanned file ${entity.path}: $e');
+        }
+      }
+
+      return importedSongs;
+    } catch (e) {
+      debugPrint('Error scanning music directory: $e');
+      return [];
+    }
+  }
 }
 
 // Riverpod Providers
