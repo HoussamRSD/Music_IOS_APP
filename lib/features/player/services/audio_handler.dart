@@ -78,6 +78,12 @@ class MyAudioHandler extends BaseAudioHandler {
     await play();
   }
 
+  Future<void> playFromUrl(String url, MediaItem item) async {
+    mediaItem.add(item);
+    await _audioPlayer.setUrl(url);
+    await play();
+  }
+
   @override
   Future<void> play() => _audioPlayer.play();
 

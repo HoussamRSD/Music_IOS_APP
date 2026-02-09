@@ -7,7 +7,8 @@ enum NavigationTab {
   songs,
   playlists,
   artists,
-  favorites;
+  favorites,
+  youtube;
 
   String get label {
     switch (this) {
@@ -21,6 +22,8 @@ enum NavigationTab {
         return 'Artists';
       case NavigationTab.favorites:
         return 'Favorites';
+      case NavigationTab.youtube:
+        return 'YouTube';
     }
   }
 
@@ -36,6 +39,8 @@ enum NavigationTab {
         return CupertinoIcons.person_2;
       case NavigationTab.favorites:
         return CupertinoIcons.heart_fill;
+      case NavigationTab.youtube:
+        return CupertinoIcons.play_rectangle;
     }
   }
 
@@ -49,6 +54,8 @@ enum NavigationTab {
       case NavigationTab.artists:
       case NavigationTab.favorites:
         return '/library';
+      case NavigationTab.youtube:
+        return '/youtube';
     }
   }
 
@@ -62,6 +69,8 @@ enum NavigationTab {
       case NavigationTab.artists:
       case NavigationTab.favorites:
         return 1;
+      case NavigationTab.youtube:
+        return 2;
     }
   }
 
@@ -69,6 +78,7 @@ enum NavigationTab {
   int? get libraryTabIndex {
     switch (this) {
       case NavigationTab.home:
+      case NavigationTab.youtube:
         return null;
       case NavigationTab.songs:
         return 0;

@@ -33,6 +33,9 @@ class GlassBottomBar extends ConsumerWidget {
         ref.read(libraryTabProvider.notifier).setTab(3);
         navigationShell.goBranch(1);
         break;
+      case NavigationTab.youtube:
+        navigationShell.goBranch(2);
+        break;
     }
   }
 

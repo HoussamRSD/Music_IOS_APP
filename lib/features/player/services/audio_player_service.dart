@@ -93,6 +93,33 @@ class AudioPlayerController extends Notifier<PlayerState> {
     }
   }
 
+  Future<void> playYouTubeVideo(
+    String url,
+    String title,
+    String author,
+    String artworkUrl,
+  ) async {
+    try {
+      state = state.copyWith(isLoading: true);
+      // Create a temporary Song object for UI (optional, or just update state)
+      // For now, we rely on mediaItem updates from handler, but handler needs the item first.
+
+      if (_audioHandler != null) {
+        final item = MediaItem(
+          id: url,
+          title: title,
+          artist: author,
+          artUri: Uri.parse(artworkUrl),
+        );
+        await _audioHandler!.playFromUrl(url, item);
+      }
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+      rethrow;
+    }
+  }
+
   Future<void> play() async {
     await _audioHandler?.play();
   }

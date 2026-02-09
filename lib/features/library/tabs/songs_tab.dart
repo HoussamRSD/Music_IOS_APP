@@ -174,15 +174,6 @@ class SongListTile extends ConsumerWidget {
             ),
             CupertinoButton(
               padding: EdgeInsets.zero,
-              onPressed: () {
-                ref
-                    .read(libraryScannerServiceProvider)
-                    .scanLibrary(forceRescan: true);
-              },
-              child: const Icon(CupertinoIcons.refresh_bold),
-            ),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
               minSize: 32,
               child: Icon(
                 song.isFavorite
