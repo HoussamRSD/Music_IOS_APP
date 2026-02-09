@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../ui/components/tab_header.dart';
 import '../../download/services/download_service.dart';
 import '../../player/services/audio_player_service.dart';
+import '../models/youtube_video.dart';
 import '../services/youtube_service.dart';
 
 class YouTubeWebViewScreen extends ConsumerStatefulWidget {
@@ -252,7 +253,7 @@ class _YouTubeWebViewScreenState extends ConsumerState<YouTubeWebViewScreen> {
       ]);
 
       final audioUrl = results[0] as String?;
-      final videoInfo = results[1];
+      final videoInfo = results[1] as YouTubeVideo?;
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog
@@ -334,7 +335,7 @@ class _YouTubeWebViewScreenState extends ConsumerState<YouTubeWebViewScreen> {
                   minHeight: 3,
                   backgroundColor: Colors.transparent,
                   valueColor: AlwaysStoppedAnimation(
-                    AppTheme.accentColor.withOpacity(0.5),
+                    AppTheme.primaryColor.withOpacity(0.5),
                   ),
                 ),
               ),
