@@ -346,8 +346,8 @@ class _SongListTile extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(
                   File(song.artworkPath!),
-                  width: 100,
-                  height: 100,
+                  width: 56,
+                  height: 56,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) =>
                       _defaultArtwork(),
@@ -449,8 +449,8 @@ class _SongListTile extends ConsumerWidget {
 
   Widget _defaultArtwork() {
     return Container(
-      width: 100,
-      height: 100,
+      width: 56,
+      height: 56,
       decoration: BoxDecoration(
         color: AppTheme.primaryColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
