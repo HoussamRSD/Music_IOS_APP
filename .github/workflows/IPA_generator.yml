@@ -3,7 +3,6 @@ name: iOS-ipa-build
 on:
   workflow_dispatch:
 
-
 jobs:
   build-ios:
     name: 🎉 iOS IPA Build
@@ -25,26 +24,29 @@ jobs:
         run: pod repo update
         working-directory: ios
 
-      - name: Build iOS app (no code signing)
+      - name: Build IPA (no code signing)
         run: |
           export CODE_SIGNING_ALLOWED=NO
           export CODE_SIGNING_REQUIRED=NO
           export CODE_SIGN_IDENTITY=""
-          flutter build ios --release --no-codesign
+          flutter pub get
+          flutter build ipa --release --no-codesign
 
-      - name: Create IPA
+      - name: Create IPA (use built .ipa or fallback)
         run: |
-          # Create Payload directory
-          mkdir -p Payload
-
-          # Move Runner.app to Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
-
-          # Create IPA (zip file with .ipa extension)
-          zip -r -q FlutterIpaExport.ipa Payload
-
-          # Verify IPA was created
-          ls -lh FlutterIpaExport.ipa
+          set -e
+          # If flutter produced an .ipa, use it. Otherwise fall back to zipping the Runner.app
+          if [ -f build/ios/ipa/Runner.ipa ]; then
+            echo "Found build/ios/ipa/Runner.ipa — copying to FlutterIpaExport.ipa"
+            cp build/ios/ipa/Runner.ipa FlutterIpaExport.ipa
+            ls -lh FlutterIpaExport.ipa
+          else
+            echo "Runner.ipa not found — falling back to zipping Payload from Runner.app"
+            mkdir -p Payload
+            cp -r build/ios/iphoneos/Runner.app Payload/
+            zip -r -q FlutterIpaExport.ipa Payload
+            ls -lh FlutterIpaExport.ipa
+          fi
         working-directory: ./
 
       - name: Upload IPA artifact
