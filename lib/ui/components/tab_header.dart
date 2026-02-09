@@ -29,7 +29,7 @@ class TabHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appTextStyles = ref.watch(appTextStylesProvider);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 100, 16, 20),
       child: Row(
         children: [
           // Icon in glass container
@@ -39,11 +39,7 @@ class TabHeader extends ConsumerWidget {
             blur: 15,
             child: Container(
               padding: const EdgeInsets.all(10),
-              child: Icon(
-                icon,
-                color: AppTheme.primaryColor,
-                size: 24,
-              ),
+              child: Icon(icon, color: AppTheme.primaryColor, size: 24),
             ),
           ),
           const SizedBox(width: 12),

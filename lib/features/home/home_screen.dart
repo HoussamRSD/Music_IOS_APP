@@ -75,9 +75,9 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Text(
                     _getGreeting(),
-                    style: appTextStyles.displayMedium(color: AppTheme.textSecondary).copyWith(
-                      fontSize: 16,
-                    ),
+                    style: appTextStyles
+                        .displayMedium(color: AppTheme.textSecondary)
+                        .copyWith(fontSize: 16),
                   ),
                   const SizedBox(height: 24),
                   _NavigationGrid(),
@@ -96,7 +96,6 @@ class HomeScreen extends ConsumerWidget {
               }
 
               final recentSongs = songs.take(5).toList();
-              final madeForYou = songs.skip(5).take(5).toList();
 
               return SliverList(
                 delegate: SliverChildListDelegate([
@@ -105,26 +104,8 @@ class HomeScreen extends ConsumerWidget {
                     _HorizontalCardList(songs: recentSongs),
                   ],
 
-                  if (madeForYou.isNotEmpty) ...[
-                    _SectionHeader(title: 'Made for You'),
-                    _HorizontalCardList(songs: madeForYou, isLarge: true),
-                  ],
-
                   // Removed Trending Now as requested
-
-                  // Quick Access to All Songs
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: CupertinoButton(
-                      color: AppTheme.surfaceHighlight,
-                      child: const Text('View All Songs'),
-                      onPressed: () {
-                        _navigateToTab(context, ref, NavigationTab.songs);
-                      },
-                    ),
-                  ),
-
-                    const SizedBox(height: 180),
+                  const SizedBox(height: 180),
                 ]),
               );
             },
@@ -161,8 +142,7 @@ class HomeScreen extends ConsumerWidget {
           tab.branchIndex!,
           initialLocation:
               tab.branchIndex ==
-              shell
-                  .currentIndex, // Reset stack if same branch
+              shell.currentIndex, // Reset stack if same branch
         );
 
         // If it's a library tab, set the sub-tab index
@@ -227,7 +207,11 @@ class HomeScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref, AppTextStyles appTextStyles) {
+  Widget _buildEmptyState(
+    BuildContext context,
+    WidgetRef ref,
+    AppTextStyles appTextStyles,
+  ) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -262,9 +246,9 @@ class HomeScreen extends ConsumerWidget {
         const SizedBox(height: 10),
         Text(
           'Supports MP3, FLAC, M4A, WAV',
-          style: appTextStyles.bodySmall(color: AppTheme.textSecondary.withOpacity(0.5)).copyWith(
-            fontSize: 12,
-          ),
+          style: appTextStyles
+              .bodySmall(color: AppTheme.textSecondary.withOpacity(0.5))
+              .copyWith(fontSize: 12),
         ),
       ],
     );
@@ -412,20 +396,17 @@ class _NavigationCard extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  shape: BoxShape.circle,
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: appTextStyles.titleMedium(),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Text(title, style: appTextStyles.titleMedium()),
+              ],
             ),
           ),
         ),
@@ -461,22 +442,21 @@ class _SectionHeader extends ConsumerWidget {
 
 class _HorizontalCardList extends ConsumerWidget {
   final List<Song> songs;
-  final bool isLarge;
 
-  const _HorizontalCardList({required this.songs, this.isLarge = false});
+  const _HorizontalCardList({required this.songs});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appTextStyles = ref.watch(appTextStylesProvider);
     return SizedBox(
-      height: isLarge ? 280 : 220,
+      height: 220,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: songs.length,
         itemBuilder: (context, index) {
           final song = songs[index];
-          final size = isLarge ? 220.0 : 160.0;
+          final size = 160.0;
 
           return GestureDetector(
             onTap: () {
@@ -494,7 +474,7 @@ class _HorizontalCardList extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   GlassContainer(
-                    borderRadius: BorderRadius.circular(isLarge ? 12 : 8),
+                    borderRadius: BorderRadius.circular(8),
                     opacity: 0.1,
                     blur: 10,
                     child: Container(
@@ -525,15 +505,17 @@ class _HorizontalCardList extends ConsumerWidget {
                       children: [
                         Text(
                           song.title,
-                          style: isLarge
-                              ? appTextStyles.bodyLarge()
-                              : appTextStyles.bodyMedium(color: AppTheme.textPrimary),
+                          style: appTextStyles.bodyMedium(
+                            color: AppTheme.textPrimary,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           song.artists.join(', '),
-                          style: appTextStyles.bodyMedium(color: AppTheme.textSecondary),
+                          style: appTextStyles.bodyMedium(
+                            color: AppTheme.textSecondary,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

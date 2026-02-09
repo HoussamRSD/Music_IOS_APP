@@ -36,7 +36,7 @@ class ArtistDetailsScreen extends ConsumerWidget {
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.only(top: 0, bottom: 100),
+              padding: const EdgeInsets.fromLTRB(0, 100, 0, 100),
               itemCount: songs.length,
               itemBuilder: (context, index) {
                 final song = songs[index];

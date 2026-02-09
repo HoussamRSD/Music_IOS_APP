@@ -192,8 +192,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         }
 
         // Dismiss loading dialog
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
         }
 
         // Refresh the songs list and invalidate related providers
@@ -226,8 +226,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         }
 
         // Dismiss loading dialog if still open
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
         }
 
         if (!mounted) {
@@ -256,8 +256,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
       // Try to dismiss any open dialog
       try {
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
         }
       } catch (_) {}
 
