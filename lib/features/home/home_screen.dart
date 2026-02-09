@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ui/components/glass_container.dart';
 import '../library/data/song_repository.dart';
@@ -11,6 +12,9 @@ import '../../core/data/models/song.dart';
 import '../player/now_playing_screen.dart';
 import '../player/services/audio_player_service.dart';
 import '../settings/settings_screen.dart';
+import '../navigation/models/navigation_tab.dart';
+import '../navigation/providers/navigation_provider.dart';
+import '../library/providers/library_providers.dart';
 
 final homeSongsProvider = FutureProvider<List<Song>>((ref) async {
   final repository = ref.watch(songRepositoryProvider);
@@ -26,50 +30,56 @@ class HomeScreen extends ConsumerWidget {
 
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.backgroundColor,
+      navigationBar: CupertinoNavigationBar(
+        backgroundColor: Colors.transparent,
+        middle: Text('Home', style: AppTheme.textTheme.titleMedium),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(
+                CupertinoIcons.settings,
+                color: AppTheme.primaryColor,
+              ),
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  CupertinoPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(
+                CupertinoIcons.add_circled,
+                color: AppTheme.primaryColor,
+              ),
+              onPressed: () => _importFiles(context, ref),
+            ),
+          ],
+        ),
+      ),
       child: CustomScrollView(
         slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Listen Now'),
-            backgroundColor: const Color(0xCC1C1C1E),
-            border: null,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  child: const Icon(
-                    CupertinoIcons.settings,
-                    color: AppTheme.primaryColor,
-                  ),
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      CupertinoPageRoute(
-                        builder: (context) => const SettingsScreen(),
-                      ),
-                    );
-                  },
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  child: const Icon(
-                    CupertinoIcons.add_circled,
-                    color: AppTheme.primaryColor,
-                  ),
-                  onPressed: () => _importFiles(context, ref),
-                ),
-              ],
-            ),
-          ),
-
+          // Greeting & Navigation Grid
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              child: Text(
-                _getGreeting(),
-                style: AppTheme.textTheme.displayMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontSize: 16,
-                ),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _getGreeting(),
+                    style: AppTheme.textTheme.displayMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _NavigationGrid(),
+                ],
               ),
             ),
           ),
@@ -85,7 +95,6 @@ class HomeScreen extends ConsumerWidget {
 
               final recentSongs = songs.take(5).toList();
               final madeForYou = songs.skip(5).take(5).toList();
-              final trending = songs.take(10).toList().reversed.toList();
 
               return SliverList(
                 delegate: SliverChildListDelegate([
@@ -99,10 +108,7 @@ class HomeScreen extends ConsumerWidget {
                     _HorizontalCardList(songs: madeForYou, isLarge: true),
                   ],
 
-                  if (trending.isNotEmpty) ...[
-                    _SectionHeader(title: 'Trending Now'),
-                    _HorizontalCardList(songs: trending),
-                  ],
+                  // Removed Trending Now as requested
 
                   // Quick Access to All Songs
                   Padding(
@@ -111,8 +117,7 @@ class HomeScreen extends ConsumerWidget {
                       color: AppTheme.surfaceHighlight,
                       child: const Text('View All Songs'),
                       onPressed: () {
-                        // Navigate to library tab (index 1)
-                        // This requires GoRouter shell navigation, but for now we can rely on the tab bar
+                        _navigateToTab(context, ref, NavigationTab.songs);
                       },
                     ),
                   ),
@@ -136,6 +141,90 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _navigateToTab(BuildContext context, WidgetRef ref, NavigationTab tab) {
+    if (tab == NavigationTab.home) return;
+
+    final settings = ref.read(navigationProvider);
+    final isVisible = !settings.hidden.contains(tab);
+
+    if (isVisible) {
+      // Tab is visible in bottom bar, switch to it using GoRouter
+      final shell = context
+          .findAncestorStateOfType<StatefulNavigationShellState>();
+      if (shell != null && tab.branchIndex != null) {
+        // Switch branch
+        shell.widget.navigationShell.goBranch(
+          tab.branchIndex!,
+          initialLocation:
+              tab.branchIndex ==
+              shell
+                  .widget
+                  .navigationShell
+                  .currentIndex, // Reset stack if same branch
+        );
+
+        // If it's a library tab, set the sub-tab index
+        if (tab.libraryTabIndex != null) {
+          ref.read(libraryTabProvider.notifier).setTab(tab.libraryTabIndex!);
+        }
+      }
+    } else {
+      // Tab is hidden, open as new page
+      // We need to determine imports for specific screens if they are not exported by library_screen
+      // However, we can use the specific tab widgets directly if they are public
+      // Or map them here. Since we refactored SongsTab, we can import it.
+      // We need imports for other tabs too.
+      // Let's defer actual navigation to a helper or just push the route here.
+      // Ideally we should use GoRouter push, but for now simple push is fine or context.push
+
+      // Since existing tabs are part of library, we might want to push a specific route
+      // But LibraryScreen handles tabs internally.
+      // If we want a standalone page for "Songs" when it's hidden, we need to wrap SongsTab in a Scaffold.
+
+      Widget page;
+      String title = tab.label;
+
+      // Lazy import resolution by using a builder or separate file would be cleaner,
+      // but for now let's use a simple switch if we have access to the classes.
+      // We need to import the tab classes.
+
+      // See imports added at top... we need to add imports for PlaylistsTab etc if they are used here.
+      // Or better, trigger navigation to a route that we define in app_router.dart for standalone views?
+      // For now, let's just use the Library tab logic but forcing the tab index if we navigate to library...
+      // BUT if it's hidden, we can't navigate to the library branch's tab bar item easily without showing it?
+      // Actually, if it's hidden from the BAR, it doesn't mean the route doesn't exist.
+      // But if we want to show it *without* the bottom bar highlight or just as a page:
+
+      // Let's implement a simple "Push new page with this tab content" strategy.
+
+      // We need to import the tab widgets in the HomeScreen file for this to work.
+      // I will add necessary imports in the next step or this one if I can.
+
+      // For now, basic stubbing or using what we have.
+      // Since we don't have imports for PlaylistsTab etc in this replacement content yet (I need to check imports in original vs replacement),
+      // I added generic imports but I should ensure they are correct.
+
+      // Actually, navigation via Router is best.
+      // context.push('/library?tab=${tab.libraryTabIndex}'); // If we supported query params for tab
+
+      // Let's assume for now we use the same logic: go to library branch and set tab.
+      // If the tab is "hidden" from the bottom bar, it might still be accessible via the router branch 1 (Library).
+      // The "hidden" attribute in NavigationSettings only controls the *Bottom Bar Item* visibility.
+      // The branch itself (Library) is likely still legally accessible.
+      // So we can just switch to Library branch and set the libraryTabProvider!
+
+      final shell = context
+          .findAncestorStateOfType<StatefulNavigationShellState>();
+      if (shell != null) {
+        // Switch to library branch (index 1) which is always there
+        shell.widget.navigationShell.goBranch(1);
+        if (tab.libraryTabIndex != null) {
+          ref.read(libraryTabProvider.notifier).setTab(tab.libraryTabIndex!);
+        }
+      }
+    }
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
@@ -231,6 +320,119 @@ class HomeScreen extends ConsumerWidget {
     if (hour < 12) return 'Good Morning';
     if (hour < 18) return 'Good Afternoon';
     return 'Good Evening';
+  }
+}
+
+class _NavigationGrid extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 20) / 2;
+        return Wrap(
+          spacing: 20,
+          runSpacing: 20,
+          children: [
+            _NavigationCard(
+              title: 'Songs',
+              icon: CupertinoIcons.music_note,
+              color: Colors.blueAccent,
+              width: itemWidth,
+              onTap: () => HomeScreen()._navigateToTab(
+                context,
+                ref,
+                NavigationTab.songs,
+              ),
+            ),
+            _NavigationCard(
+              title: 'Favorites',
+              icon: CupertinoIcons.heart_fill,
+              color: Colors.pinkAccent,
+              width: itemWidth,
+              onTap: () => HomeScreen()._navigateToTab(
+                context,
+                ref,
+                NavigationTab.favorites,
+              ),
+            ),
+            _NavigationCard(
+              title: 'Playlists',
+              icon: CupertinoIcons.music_note_list,
+              color: Colors.purpleAccent,
+              width: itemWidth,
+              onTap: () => HomeScreen()._navigateToTab(
+                context,
+                ref,
+                NavigationTab.playlists,
+              ),
+            ),
+            _NavigationCard(
+              title: 'Artists',
+              icon: CupertinoIcons.person_2_fill,
+              color: Colors.orangeAccent,
+              width: itemWidth,
+              onTap: () => HomeScreen()._navigateToTab(
+                context,
+                ref,
+                NavigationTab.artists,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _NavigationCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final double width;
+  final VoidCallback onTap;
+
+  const _NavigationCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.width,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassContainer(
+        width: width,
+        height: 80,
+        borderRadius: BorderRadius.circular(16),
+        opacity: 0.1,
+        blur: 20,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: AppTheme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
