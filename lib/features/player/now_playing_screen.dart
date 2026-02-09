@@ -6,7 +6,7 @@ import '../../core/data/models/lyrics.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../library/data/song_repository.dart';
-import '../library/library_screen.dart';
+import '../library/providers/library_providers.dart';
 import '../lyrics/services/lyrics_service.dart';
 import '../lyrics/lyrics_editor_screen.dart';
 import '../lyrics/lyrics_search_screen.dart';
@@ -542,6 +542,18 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
       context: context,
       builder: (context) => CupertinoActionSheet(
         actions: [
+          CupertinoActionSheetAction(
+            child: const Text('Search Lyrics'),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => LyricsSearchScreen(song: currentSong),
+                ),
+              );
+            },
+          ),
           CupertinoActionSheetAction(
             child: const Text('Add to Playlist'),
             onPressed: () {

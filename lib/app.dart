@@ -11,6 +11,7 @@ import 'features/navigation/providers/navigation_provider.dart';
 import 'features/library/providers/library_providers.dart';
 import 'features/settings/providers/font_provider.dart';
 import 'ui/scaffold/main_scaffold.dart';
+import 'features/artists/screens/artist_details_screen.dart';
 
 class GlassApp extends ConsumerStatefulWidget {
   const GlassApp({super.key});
@@ -52,6 +53,17 @@ class _GlassAppState extends ConsumerState<GlassApp> {
                 GoRoute(
                   path: '/library',
                   builder: (context, state) => const LibraryScreen(),
+                  routes: [
+                    GoRoute(
+                      path: 'artist/:name',
+                      builder: (context, state) {
+                        final artistName = Uri.decodeComponent(
+                          state.pathParameters['name']!,
+                        );
+                        return ArtistDetailsScreen(artistName: artistName);
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

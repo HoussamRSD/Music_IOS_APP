@@ -70,8 +70,6 @@
 			</array>
 		</dict>
 	</array>
-	<!-- Required for document picker -->
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
+
 </dict>
 </plist>

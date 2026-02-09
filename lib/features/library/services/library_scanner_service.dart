@@ -6,6 +6,14 @@ import '../../../core/data/models/song.dart';
 import '../data/song_repository.dart';
 import 'metadata_service.dart';
 
+class ScanResult {
+  final int added;
+  final int updated;
+  final int removed;
+
+  const ScanResult({this.added = 0, this.updated = 0, this.removed = 0});
+}
+
 class LibraryScannerService {
   final SongRepository _songRepository;
   final MetadataService _metadataService;
@@ -18,34 +26,35 @@ class LibraryScannerService {
   }) : _songRepository = songRepository,
        _metadataService = metadataService;
 
-  Future<void> scanLibrary() async {
+  Future<ScanResult> scanLibrary({bool forceRescan = false}) async {
     if (_isScanning) {
       debugPrint('Scan already in progress.');
-      return;
+      return const ScanResult();
     }
     _isScanning = true;
-    debugPrint('Starting library scan...');
+    debugPrint('Starting library scan (force: $forceRescan)...');
+
+    int addedCount = 0;
+    int updatedCount = 0;
+    int removedCount = 0;
 
     try {
       final appDir = await getApplicationDocumentsDirectory();
+      // ... (directory setup same as before)
       final musicDir = Directory(path.join(appDir.path, 'music'));
 
-      // Ensure music directory exists
       if (!await musicDir.exists()) {
         await musicDir.create(recursive: true);
       }
 
-      // List all audio files in Documents/music recursively
       final List<FileSystemEntity> files = await _listFilesSafe(musicDir);
-
-      // Also scan root Documents folder for user convenience
       final List<FileSystemEntity> rootFiles = await _listFilesSafe(
         appDir,
         recursive: false,
       );
       files.addAll(rootFiles);
 
-      // Filter for audio extensions
+      // Filter for audio files (same logic)
       final audioFiles = files
           .where((file) {
             if (file is! File) return false;
@@ -64,22 +73,30 @@ class LibraryScannerService {
 
       debugPrint('Found ${audioFiles.length} potential audio files.');
 
-      // Get existing songs from DB to avoid duplicates
       final existingSongs = await _songRepository.getAllSongs();
-      final existingPaths = existingSongs.map((s) => s.filePath).toSet();
+      // Map filePath to Song for easier lookup
+      final existingMap = {for (var s in existingSongs) s.filePath: s};
 
       final foundPaths = <String>{};
-      int addedCount = 0;
-      int removedCount = 0;
+      // int addedCount = 0; // Moved declaration
+      // int updatedCount = 0; // Moved declaration
+      // int removedCount = 0; // Moved declaration
 
       for (final file in audioFiles) {
         foundPaths.add(file.path);
 
-        if (!existingPaths.contains(file.path)) {
-          // New file detected
+        final existingSong = existingMap[file.path];
+
+        if (existingSong == null) {
+          // New file
           debugPrint('Adding new file: ${path.basename(file.path)}');
           await _processAndAddSong(file);
           addedCount++;
+        } else if (forceRescan) {
+          // Existing file, force update
+          debugPrint('Updating file: ${path.basename(file.path)}');
+          await _processAndUpdateSong(file, existingSong);
+          updatedCount++;
         }
       }
 
@@ -99,12 +116,20 @@ class LibraryScannerService {
         }
       }
 
-      debugPrint('Scan complete. Added: $addedCount, Removed: $removedCount');
+      debugPrint(
+        'Scan complete. Added: $addedCount, Updated: $updatedCount, Removed: $removedCount',
+      );
     } catch (e) {
       debugPrint('Library scan failed: $e');
     } finally {
       _isScanning = false;
     }
+
+    return ScanResult(
+      added: addedCount,
+      updated: updatedCount,
+      removed: removedCount,
+    );
   }
 
   Future<List<FileSystemEntity>> _listFilesSafe(
@@ -122,6 +147,9 @@ class LibraryScannerService {
   Future<void> _processAndAddSong(File file) async {
     try {
       final metadata = await _metadataService.extractMetadata(file.path);
+      // Only extract artwork for new songs or if missing?
+      // For now, let's extract it to be safe, or we can optimize.
+      // MetadataService handles caching, so it should be fine.
       final artworkPath = await _metadataService.extractArtwork(file.path);
 
       final song = Song(
@@ -141,6 +169,34 @@ class LibraryScannerService {
       await _songRepository.addSong(song);
     } catch (e) {
       debugPrint('Failed to add song ${file.path}: $e');
+    }
+  }
+
+  Future<void> _processAndUpdateSong(File file, Song existingSong) async {
+    try {
+      final metadata = await _metadataService.extractMetadata(file.path);
+      // We can skip artwork extraction if we assume it hasn't changed,
+      // but for full rescan we might want to check.
+      // For performance, let's keep existing artwork if not null, or re-extract.
+      // Let's re-extract to fully update.
+      final artworkPath = await _metadataService.extractArtwork(file.path);
+
+      final updatedSong = existingSong.copyWith(
+        title: metadata.title,
+        album: metadata.album,
+        artists: metadata.artists,
+        duration: metadata.duration,
+        trackNumber: metadata.trackNumber,
+        year: metadata.year,
+        genre: metadata.genre,
+        artworkPath: artworkPath ?? existingSong.artworkPath,
+        // Don't update addedAt, playCount, lyrics, etc.
+        hasEmbeddedLyrics: metadata.hasLyrics,
+      );
+
+      await _songRepository.updateSong(updatedSong);
+    } catch (e) {
+      debugPrint('Failed to update song ${file.path}: $e');
     }
   }
 }

@@ -64,7 +64,7 @@ class MetadataService {
       return MetadataResult(
         title: metadata.title ?? path.basenameWithoutExtension(filePath),
         album: metadata.album,
-        artists: metadata.artist != null ? [metadata.artist!] : [],
+        artists: metadata.artist != null ? _splitArtists(metadata.artist!) : [],
         duration: metadata.durationMs?.toInt(),
         trackNumber: metadata.trackNumber,
         year: metadata.year,
@@ -107,7 +107,7 @@ class MetadataService {
     List<String> artists = ['Unknown Artist'];
 
     if (parts.length >= 2) {
-      artists = [parts[0].trim()];
+      artists = _splitArtists(parts[0].trim());
       title = parts.sublist(1).join(' - ').trim();
     }
 
@@ -169,5 +169,25 @@ class MetadataService {
       await artworkDir.create(recursive: true);
     }
     return artworkDir;
+  }
+
+  // Split artist string into multiple artists based on common delimiters
+  List<String> _splitArtists(String artistString) {
+    if (artistString.isEmpty) return [];
+
+    // Replace "feat.", "ft.", "featuring" with a common separator
+    String processed = artistString.replaceAll(
+      RegExp(r'\s+(feat\.|ft\.|featuring)\s+', caseSensitive: false),
+      ' & ',
+    );
+    processed = processed.replaceAll(RegExp(r'\s*[,/;&]\s*'), '|');
+
+    // Split by pipe and clean up
+    return processed
+        .split('|')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet() // Remove duplicates
+        .toList();
   }
 }

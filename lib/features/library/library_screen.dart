@@ -18,29 +18,6 @@ import 'tabs/favorites_tab.dart';
 import 'providers/library_providers.dart';
 import '../settings/providers/font_provider.dart';
 
-// Provider for songs list
-final songsProvider = FutureProvider<List<Song>>((ref) async {
-  final repository = ref.watch(songRepositoryProvider);
-  return await repository.getAllSongs();
-});
-
-// Provider for view mode
-// Provider for view mode
-class GridViewNotifier extends Notifier<bool> {
-  @override
-  bool build() {
-    return false;
-  }
-
-  void toggle() {
-    state = !state;
-  }
-}
-
-final isGridViewProvider = NotifierProvider<GridViewNotifier, bool>(
-  GridViewNotifier.new,
-);
-
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
 
@@ -186,7 +163,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Future<void> _scanMusicFolder() async {
     try {
-      final importService = ref.read(fileImportServiceProvider);
+      final scannerService = ref.read(libraryScannerServiceProvider);
 
       // Show loading indicator
       showCupertinoDialog(
@@ -197,36 +174,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         ),
       );
 
-      final songs = await importService.scanMusicDirectory();
+      final result = await scannerService.scanLibrary(forceRescan: true);
 
       if (!mounted) return;
       Navigator.of(context).pop(); // Dismiss loading
 
-      if (songs.isEmpty) {
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Text('Scan Complete'),
-            content: const Text('No new music files found in the folder.'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
       // Refresh the songs list
       ref.invalidate(songsProvider);
+      // Invalidate artists too if needed, generally songs provider invalidation triggers others if they depend on it
+      // but if allArtistsProvider depends on songsProvider (it does), it will update.
 
       showCupertinoDialog(
         context: context,
         builder: (context) => CupertinoAlertDialog(
-          title: const Text('Scan Complete'),
-          content: Text('Found and imported ${songs.length} new song(s)'),
+          title: const Text('Rescan Complete'),
+          content: Text(
+            'Added: ${result.added}\nUpdated: ${result.updated}\nRemoved: ${result.removed}',
+          ),
           actions: [
             CupertinoDialogAction(
               child: const Text('OK'),
@@ -237,12 +201,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       );
     } catch (e) {
       if (!mounted) return;
-      Navigator.of(context).pop(); // Dismiss loading if shown
+      Navigator.of(context).pop(); // Dismiss loading
       showCupertinoDialog(
         context: context,
         builder: (context) => CupertinoAlertDialog(
           title: const Text('Scan Failed'),
-          content: Text('An error occurred: $e'),
+          content: Text('An error occurred during scan: $e'),
           actions: [
             CupertinoDialogAction(
               child: const Text('OK'),
@@ -509,6 +473,15 @@ class _SongListTile extends ConsumerWidget {
                 color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 13,
               ),
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () {
+                ref
+                    .read(libraryScannerServiceProvider)
+                    .scanLibrary(forceRescan: true);
+              },
+              child: const Icon(CupertinoIcons.refresh_bold),
             ),
             CupertinoButton(
               padding: EdgeInsets.zero,
