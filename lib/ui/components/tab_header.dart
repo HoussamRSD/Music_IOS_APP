@@ -12,6 +12,7 @@ class TabHeader extends ConsumerWidget {
   final IconData? actionIcon;
   final String? actionLabel;
   final bool showAction;
+  final Widget? actionButton;
 
   const TabHeader({
     super.key,
@@ -21,6 +22,7 @@ class TabHeader extends ConsumerWidget {
     this.actionIcon,
     this.actionLabel,
     this.showAction = true,
+    this.actionButton,
   });
 
   @override
@@ -55,8 +57,10 @@ class TabHeader extends ConsumerWidget {
               ),
             ),
           ),
-          // Action button
-          if (showAction && actionIcon != null && onActionPressed != null)
+          // Action button - custom widget takes precedence
+          if (showAction && actionButton != null)
+            actionButton!
+          else if (showAction && actionIcon != null && onActionPressed != null)
             GestureDetector(
               onTap: onActionPressed,
               child: GlassContainer(

@@ -87,18 +87,18 @@ class _LyricsViewState extends State<LyricsView> {
   Widget build(BuildContext context) {
     if (widget.lyrics.syncedLyrics == null ||
         widget.lyrics.syncedLyrics!.isEmpty) {
-      return Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            widget.lyrics.plainLyrics ?? 'No lyrics available',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              height: 1.6,
-            ),
-            textAlign: TextAlign.center,
+      // Display plain lyrics on a single scrollable page
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: SelectableText(
+          widget.lyrics.plainLyrics ?? 'No lyrics available',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            height: 1.8,
+            letterSpacing: 0.3,
           ),
+          textAlign: TextAlign.center,
         ),
       );
     }

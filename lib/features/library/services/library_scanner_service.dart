@@ -147,10 +147,7 @@ class LibraryScannerService {
   Future<void> _processAndAddSong(File file) async {
     try {
       final metadata = await _metadataService.extractMetadata(file.path);
-      // Only extract artwork for new songs or if missing?
-      // For now, let's extract it to be safe, or we can optimize.
-      // MetadataService handles caching, so it should be fine.
-      final artworkPath = await _metadataService.extractArtwork(file.path);
+      // Artwork is already extracted and cached in extractMetadata()
 
       final song = Song(
         title: metadata.title,
@@ -161,7 +158,7 @@ class LibraryScannerService {
         year: metadata.year,
         genre: metadata.genre,
         filePath: file.path,
-        artworkPath: artworkPath,
+        artworkPath: metadata.artworkPath,
         addedAt: DateTime.now(),
         hasEmbeddedLyrics: metadata.hasLyrics,
       );
@@ -175,11 +172,8 @@ class LibraryScannerService {
   Future<void> _processAndUpdateSong(File file, Song existingSong) async {
     try {
       final metadata = await _metadataService.extractMetadata(file.path);
-      // We can skip artwork extraction if we assume it hasn't changed,
-      // but for full rescan we might want to check.
-      // For performance, let's keep existing artwork if not null, or re-extract.
-      // Let's re-extract to fully update.
-      final artworkPath = await _metadataService.extractArtwork(file.path);
+      // Artwork is already extracted and cached in extractMetadata()
+      // Use new artwork if available, otherwise keep existing
 
       final updatedSong = existingSong.copyWith(
         title: metadata.title,
@@ -189,7 +183,7 @@ class LibraryScannerService {
         trackNumber: metadata.trackNumber,
         year: metadata.year,
         genre: metadata.genre,
-        artworkPath: artworkPath ?? existingSong.artworkPath,
+        artworkPath: metadata.artworkPath ?? existingSong.artworkPath,
         // Don't update addedAt, playCount, lyrics, etc.
         hasEmbeddedLyrics: metadata.hasLyrics,
       );

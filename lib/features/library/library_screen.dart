@@ -158,47 +158,104 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       final scannerService = ref.read(libraryScannerServiceProvider);
 
       // Show loading indicator
+      if (!mounted) return;
       showCupertinoDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CupertinoActivityIndicator(color: Colors.white, radius: 16),
-        ),
-      );
-
-      final result = await scannerService.scanLibrary(forceRescan: true);
-
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Dismiss loading
-
-      // Refresh the songs list
-      ref.invalidate(songsProvider);
-      // Invalidate artists too if needed, generally songs provider invalidation triggers others if they depend on it
-      // but if allArtistsProvider depends on songsProvider (it does), it will update.
-
-      showCupertinoDialog(
-        context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text('Rescan Complete'),
-          content: Text(
-            'Added: ${result.added}\nUpdated: ${result.updated}\nRemoved: ${result.removed}',
+        builder: (context) => PopScope(
+          canPop: false,
+          child: const Center(
+            child: CupertinoActivityIndicator(color: Colors.white, radius: 16),
           ),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('OK'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
         ),
       );
+
+      try {
+        final result = await scannerService.scanLibrary(forceRescan: true);
+
+        if (!mounted) {
+          return;
+        }
+        
+        // Dismiss loading dialog
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+
+        // Refresh the songs list and invalidate related providers
+        ref.invalidate(songsProvider);
+        // Force refresh of metadata/artwork cache
+        ref.invalidate(fileImportServiceProvider);
+
+        if (!mounted) {
+          return;
+        }
+
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Rescan Complete'),
+            content: Text(
+              'Added: ${result.added}\nUpdated: ${result.updated}\nRemoved: ${result.removed}',
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      } catch (e) {
+        if (!mounted) {
+          return;
+        }
+        
+        // Dismiss loading dialog if still open
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        
+        if (!mounted) {
+          return;
+        }
+
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Scan Failed'),
+            content: Text('An error occurred during scan: $e'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Dismiss loading
+      debugPrint('Scan error: $e');
+      if (!mounted) {
+        return;
+      }
+      
+      // Try to dismiss any open dialog
+      try {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      } catch (_) {}
+      
+      if (!mounted) {
+        return;
+      }
+
       showCupertinoDialog(
         context: context,
         builder: (context) => CupertinoAlertDialog(
-          title: const Text('Scan Failed'),
-          content: Text('An error occurred during scan: $e'),
+          title: const Text('Error'),
+          content: Text('An unexpected error occurred: $e'),
           actions: [
             CupertinoDialogAction(
               child: const Text('OK'),

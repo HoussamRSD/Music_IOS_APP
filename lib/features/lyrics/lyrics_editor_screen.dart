@@ -22,6 +22,7 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
   late int _selectedSegment;
   List<LyricLine> _syncedLines = [];
   bool _isSaving = false;
+  final Map<int, TextEditingController> _syncedControllers = {};
 
   @override
   void initState() {
@@ -42,6 +43,10 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
   @override
   void dispose() {
     _plainTextController.dispose();
+    for (final controller in _syncedControllers.values) {
+      controller.dispose();
+    }
+    _syncedControllers.clear();
     super.dispose();
   }
 
@@ -257,6 +262,17 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
                       const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final line = _syncedLines[index];
+                    
+                    // Create or reuse controller for this line
+                    if (!_syncedControllers.containsKey(index)) {
+                      _syncedControllers[index] = TextEditingController(text: line.text);
+                    } else {
+                      // Update controller text if line changed
+                      _syncedControllers[index]!.text = line.text;
+                    }
+                    
+                    final controller = _syncedControllers[index]!;
+                    
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -288,10 +304,7 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
                         // Text Field
                         Expanded(
                           child: CupertinoTextField(
-                            controller: TextEditingController(text: line.text)
-                              ..selection = TextSelection.collapsed(
-                                offset: line.text.length,
-                              ),
+                            controller: controller,
                             style: const TextStyle(color: Colors.white),
                             placeholder: 'Lyrics line...',
                             placeholderStyle: TextStyle(
@@ -321,6 +334,19 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
                           onPressed: () {
                             setState(() {
                               _syncedLines.removeAt(index);
+                              // Clean up controller
+                              _syncedControllers.remove(index);
+                              // Rebuild controller map with correct indices
+                              final newMap = <int, TextEditingController>{};
+                              for (int i = 0; i < _syncedLines.length; i++) {
+                                if (_syncedControllers.containsKey(i)) {
+                                  newMap[i] = _syncedControllers[i]!;
+                                } else if (_syncedControllers.containsKey(i + 1)) {
+                                  newMap[i] = _syncedControllers[i + 1]!;
+                                }
+                              }
+                              _syncedControllers.clear();
+                              _syncedControllers.addAll(newMap);
                             });
                           },
                         ),

@@ -36,6 +36,22 @@ class YouTubeService {
     }
   }
 
+  /// Fetches video metadata for background playback display
+  Future<YouTubeVideo?> getVideoInfo(String videoId) async {
+    try {
+      final video = await _yt.videos.get(videoId);
+      return YouTubeVideo(
+        id: video.id.value,
+        title: video.title,
+        author: video.author,
+        thumbnailUrl: video.thumbnails.highResUrl,
+        duration: video.duration ?? Duration.zero,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   void dispose() {
     _yt.close();
   }

@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Internet permission for WebView and audio streaming -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Background audio playback -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:label="my_app"
         android:name="${applicationName}"
