@@ -28,7 +28,11 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final libraryState = ref.watch(homeSongsProvider);
+import '../library/services/library_scanner_service.dart';
+
+// ... (imports)
+
+  final libraryState = ref.watch(homeSongsProvider);
     final appTextStyles = ref.watch(appTextStylesProvider);
 
     return CupertinoPageScaffold(
@@ -41,8 +45,24 @@ class HomeScreen extends ConsumerWidget {
           children: [
             CupertinoButton(
               padding: EdgeInsets.zero,
+              onPressed: () => _showImportOptions(context, ref),
               child: const Icon(
-                CupertinoIcons.settings,
+                CupertinoIcons.arrow_down_doc,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => _scanMusicFolder(context, ref),
+              child: const Icon(
+                CupertinoIcons.arrow_clockwise,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+             CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(
+                CupertinoIcons.gear_alt,
                 color: AppTheme.primaryColor,
               ),
               onPressed: () {
@@ -52,14 +72,6 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 );
               },
-            ),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              child: const Icon(
-                CupertinoIcons.add_circled,
-                color: AppTheme.primaryColor,
-              ),
-              onPressed: () => _importFiles(context, ref),
             ),
           ],
         ),
@@ -255,6 +267,165 @@ class HomeScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  void _showImportOptions(BuildContext context, WidgetRef ref) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Add Music'),
+        message: const Text('Choose how to add music to your library'),
+        actions: [
+          CupertinoActionSheetAction(
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.folder, size: 20),
+                SizedBox(width: 8),
+                Text('Import from Files'),
+              ],
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _importFiles(context, ref);
+            },
+          ),
+          CupertinoActionSheetAction(
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.arrow_clockwise, size: 20),
+                SizedBox(width: 8),
+                Text('Scan Music Folder'),
+              ],
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _scanMusicFolder(context, ref);
+            },
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          child: const Text('Cancel'),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _scanMusicFolder(BuildContext context, WidgetRef ref) async {
+    try {
+      final scannerService = ref.read(libraryScannerServiceProvider);
+
+      // Show loading indicator
+      if (!context.mounted) return;
+      showCupertinoDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,
+          child: CupertinoAlertDialog(
+            title: const Text('Scanning Library'),
+            content: const Padding(
+              padding: EdgeInsets.only(top: 16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CupertinoActivityIndicator(),
+                  SizedBox(height: 12),
+                  Text(
+                    'Please wait...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      try {
+        final result = await scannerService.scanLibrary(forceRescan: true);
+
+        if (!context.mounted) return;
+
+        // Dismiss loading dialog
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+
+        // Refresh the songs list and invalidate related providers
+        ref.invalidate(homeSongsProvider);
+        // Force refresh of metadata/artwork cache
+        ref.invalidate(fileImportServiceProvider);
+
+        if (!context.mounted) return;
+
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Rescan Complete'),
+            content: Text(
+              'Added: ${result.added}\nUpdated: ${result.updated}\nRemoved: ${result.removed}',
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      } catch (e) {
+        if (!context.mounted) return;
+        
+        // Dismiss loading dialog if still open
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+
+        if (!context.mounted) return;
+
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Scan Failed'),
+            content: Text('An error occurred during scan: $e'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      
+      // Try to dismiss any open dialog
+      try {
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      } catch (_) {}
+
+      if (!context.mounted) return;
+
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Error'),
+          content: Text('An unexpected error occurred: $e'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Future<void> _importFiles(BuildContext context, WidgetRef ref) async {
