@@ -17,6 +17,9 @@ class NavigationNotifier extends Notifier<NavigationSettings> {
     final jsonString = prefs.getString(_settingsKey);
     if (jsonString != null) {
       state = NavigationSettings.fromJson(jsonString);
+    } else {
+      // No saved settings, mark as loaded with defaults
+      state = state.copyWith(isLoaded: true);
     }
   }
 

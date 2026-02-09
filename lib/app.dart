@@ -93,9 +93,9 @@ class _GlassAppState extends ConsumerState<GlassApp> {
     final selectedFont = ref.watch(fontProvider);
 
     // Navigate to default tab after settings are loaded (only once)
-    if (!_initialNavigationDone) {
+    if (!_initialNavigationDone && settings.isLoaded) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_initialNavigationDone) {
+        if (!_initialNavigationDone && settings.isLoaded) {
           _initialNavigationDone = true;
           final defaultTab = settings.defaultTab;
 

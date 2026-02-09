@@ -48,8 +48,51 @@ class LibraryScreen extends ConsumerStatefulWidget {
   ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends ConsumerState<LibraryScreen> {
-  // int _selectedSegment = 0; // Removed local state
+class _LibraryScreenState extends ConsumerState<LibraryScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Scan on initial load
+    _autoScanOnStartup();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When app comes back to foreground, scan for new files
+    if (state == AppLifecycleState.resumed) {
+      _autoScan();
+    }
+  }
+
+  Future<void> _autoScanOnStartup() async {
+    // Small delay to let the UI settle
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    await _autoScan();
+  }
+
+  Future<void> _autoScan() async {
+    try {
+      final importService = ref.read(fileImportServiceProvider);
+      final songs = await importService.scanMusicDirectory();
+      if (!mounted) return;
+      if (songs.isNotEmpty) {
+        ref.invalidate(songsProvider);
+        // Optionally show a subtle notification
+        debugPrint('Auto-imported ${songs.length} new song(s)');
+      }
+    } catch (e) {
+      debugPrint('Auto-scan error: $e');
+    }
+  }
 
   void _showImportOptions() {
     showCupertinoModalPopup(
@@ -241,6 +284,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               onPressed: _showImportOptions,
               child: const Icon(
                 CupertinoIcons.arrow_down_doc,
+                color: AppTheme.primaryColor,
+                size: 24,
+              ),
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _scanMusicFolder,
+              child: const Icon(
+                CupertinoIcons.arrow_clockwise,
                 color: AppTheme.primaryColor,
                 size: 24,
               ),

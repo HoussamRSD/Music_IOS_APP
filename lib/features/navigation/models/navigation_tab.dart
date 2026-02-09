@@ -86,11 +86,13 @@ class NavigationSettings {
   final List<NavigationTab> order;
   final Set<NavigationTab> hidden;
   final NavigationTab defaultTab;
+  final bool isLoaded; // True when settings have been loaded from storage
 
   const NavigationSettings({
     required this.order,
     this.hidden = const {},
     this.defaultTab = NavigationTab.home,
+    this.isLoaded = false,
   });
 
   factory NavigationSettings.initial() {
@@ -98,6 +100,7 @@ class NavigationSettings {
       order: NavigationTab.values,
       hidden: {},
       defaultTab: NavigationTab.home,
+      isLoaded: false, // Not loaded yet
     );
   }
 
@@ -105,11 +108,15 @@ class NavigationSettings {
     List<NavigationTab>? order,
     Set<NavigationTab>? hidden,
     NavigationTab? defaultTab,
+    bool? isLoaded,
   }) {
     return NavigationSettings(
       order: order ?? this.order,
       hidden: hidden ?? this.hidden,
       defaultTab: defaultTab ?? this.defaultTab,
+      isLoaded:
+          isLoaded ??
+          true, // Default to true since any modification implies loaded
     );
   }
 
@@ -169,9 +176,16 @@ class NavigationSettings {
         order: order,
         hidden: hidden,
         defaultTab: defaultTab,
+        isLoaded: true, // Loaded from storage
       );
     } catch (e) {
-      return NavigationSettings.initial();
+      // Return initial with isLoaded true to proceed with defaults
+      return NavigationSettings(
+        order: NavigationTab.values,
+        hidden: {},
+        defaultTab: NavigationTab.home,
+        isLoaded: true,
+      );
     }
   }
 }
