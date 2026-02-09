@@ -9,6 +9,7 @@ import '../library/data/song_repository.dart';
 import '../library/library_screen.dart';
 import '../lyrics/services/lyrics_service.dart';
 import '../lyrics/lyrics_editor_screen.dart';
+import '../lyrics/lyrics_search_screen.dart';
 import '../playlists/components/add_to_playlist_sheet.dart';
 import '../settings/providers/font_provider.dart';
 import 'components/lyrics_view.dart';

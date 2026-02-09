@@ -1,16 +1,19 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/models/lyrics.dart';
 import '../../../core/data/models/song.dart';
 import '../data/lyrics_repository.dart';
 import 'package:path/path.dart' as path;
 import 'lyrics_writer_service.dart';
+import 'lrclib_service.dart';
 
 class LyricsService {
   final LyricsRepository _repository;
   final LyricsWriterService _writerService;
+  final LrclibService _lrclibService;
 
-  LyricsService(this._repository, this._writerService);
+  LyricsService(this._repository, this._writerService, this._lrclibService);
 
   Future<Lyrics?> getLyrics(Song song) async {
     if (song.id == null) return null;
@@ -39,8 +42,61 @@ class LyricsService {
       return embedded;
     }
 
-    // 4. Online search (Future)
+    // 4. Search online via LRCLIB
+    final online = await _searchOnline(song);
+    if (online != null) {
+      await _repository.saveLyrics(online);
+      return online;
+    }
+
     return null;
+  }
+
+  /// Search for lyrics online using LRCLIB
+  Future<Lyrics?> _searchOnline(Song song) async {
+    if (song.id == null) return null;
+
+    try {
+      debugPrint(
+        'Searching LRCLIB for: ${song.title} - ${song.artists.join(", ")}',
+      );
+
+      // Calculate duration in seconds if available
+      final durationSeconds = song.duration != null
+          ? (song.duration! / 1000).round()
+          : null;
+
+      final result = await _lrclibService.searchLyrics(
+        trackName: song.title,
+        artistName: song.artists.isNotEmpty ? song.artists.first : '',
+        albumName: song.album,
+        durationSeconds: durationSeconds,
+      );
+
+      if (result != null) {
+        debugPrint(
+          'Found lyrics from LRCLIB: ${result.hasSynced ? "synced" : "plain"}',
+        );
+        return _lrclibService.resultToLyrics(result, song.id!);
+      }
+    } catch (e) {
+      debugPrint('Online lyrics search error: $e');
+    }
+    return null;
+  }
+
+  /// Manual search for lyrics by query (for user-initiated search)
+  Future<List<LrclibResult>> manualSearch(String query) async {
+    return await _lrclibService.searchByQuery(query);
+  }
+
+  /// Apply a selected LRCLIB result to a song
+  Future<Lyrics?> applyLrclibResult(LrclibResult result, int songId) async {
+    final lyrics = _lrclibService.resultToLyrics(result, songId);
+    if (lyrics != null) {
+      await _repository.saveLyrics(lyrics);
+    }
+    return lyrics;
   }
 
   Future<String?> _findLocalLrc(String audioPath) async {
@@ -132,5 +188,6 @@ final lyricsServiceProvider = Provider<LyricsService>((ref) {
   return LyricsService(
     ref.watch(lyricsRepositoryProvider),
     ref.watch(lyricsWriterServiceProvider),
+    ref.watch(lrclibServiceProvider),
   );
 });
