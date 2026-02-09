@@ -164,8 +164,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         barrierDismissible: false,
         builder: (context) => PopScope(
           canPop: false,
-          child: const Center(
-            child: CupertinoActivityIndicator(color: Colors.white, radius: 16),
+          child: CupertinoAlertDialog(
+            title: const Text('Scanning Library'),
+            content: const Padding(
+              padding: EdgeInsets.only(top: 16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CupertinoActivityIndicator(),
+                  SizedBox(height: 12),
+                  Text(
+                    'Please wait...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       );
@@ -176,7 +190,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         if (!mounted) {
           return;
         }
-        
+
         // Dismiss loading dialog
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
@@ -210,12 +224,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         if (!mounted) {
           return;
         }
-        
+
         // Dismiss loading dialog if still open
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
-        
+
         if (!mounted) {
           return;
         }
@@ -239,14 +253,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       if (!mounted) {
         return;
       }
-      
+
       // Try to dismiss any open dialog
       try {
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
       } catch (_) {}
-      
+
       if (!mounted) {
         return;
       }

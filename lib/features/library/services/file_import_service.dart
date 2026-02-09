@@ -119,7 +119,7 @@ class FileImportService {
   /// Get the music directory path (useful for showing to users)
   Future<String> getMusicDirectoryPath() async {
     final appDir = await getApplicationDocumentsDirectory();
-    return path.join(appDir.path, 'Music');
+    return path.join(appDir.path, 'music');
   }
 
   /// Scan the music directory for new audio files that aren't in the database
@@ -127,7 +127,7 @@ class FileImportService {
   Future<List<Song>> scanMusicDirectory() async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
-      final musicDir = Directory(path.join(appDir.path, 'Music'));
+      final musicDir = Directory(path.join(appDir.path, 'music'));
 
       // Create directory if it doesn't exist
       if (!await musicDir.exists()) {

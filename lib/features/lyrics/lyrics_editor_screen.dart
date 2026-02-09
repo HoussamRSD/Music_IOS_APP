@@ -63,6 +63,16 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
 
     try {
       final writer = ref.read(lyricsWriterServiceProvider);
+
+      // Check if file is writable
+      final canWrite = await writer.canWriteToFile(widget.song.filePath);
+      if (!canWrite) {
+        _showError(
+          'Cannot write to this file. It might be read-only or in an unsupported format.',
+        );
+        return;
+      }
+
       bool success;
 
       if (_selectedSegment == 0) {
@@ -92,10 +102,10 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
           Navigator.pop(context, true); // Return true to indicate update
         }
       } else {
-        _showError('Failed to save lyrics to file.');
+        _showError('Failed to save lyrics. Please try again.');
       }
     } catch (e) {
-      _showError(e.toString());
+      _showError('An unexpected error occurred: $e');
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -262,17 +272,19 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
                       const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final line = _syncedLines[index];
-                    
+
                     // Create or reuse controller for this line
                     if (!_syncedControllers.containsKey(index)) {
-                      _syncedControllers[index] = TextEditingController(text: line.text);
+                      _syncedControllers[index] = TextEditingController(
+                        text: line.text,
+                      );
                     } else {
                       // Update controller text if line changed
                       _syncedControllers[index]!.text = line.text;
                     }
-                    
+
                     final controller = _syncedControllers[index]!;
-                    
+
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -341,7 +353,9 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
                               for (int i = 0; i < _syncedLines.length; i++) {
                                 if (_syncedControllers.containsKey(i)) {
                                   newMap[i] = _syncedControllers[i]!;
-                                } else if (_syncedControllers.containsKey(i + 1)) {
+                                } else if (_syncedControllers.containsKey(
+                                  i + 1,
+                                )) {
                                   newMap[i] = _syncedControllers[i + 1]!;
                                 }
                               }
@@ -368,9 +382,8 @@ class _LyricsEditorScreenState extends ConsumerState<LyricsEditorScreen> {
 
     setState(() {
       _syncedLines[index] = _syncedLines[index].copyWith(timeMs: position);
-      // Sort lines to keep order? Maybe not automatically to avoid jumping UI
-      // But usually timestamps should be ordered.
-      // Let's keep manual order for now, user can drag? (Drag not implemented)
+      // Sort lines to keep order
+      _syncedLines.sort((a, b) => a.timeMs.compareTo(b.timeMs));
     });
   }
 }

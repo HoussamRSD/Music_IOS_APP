@@ -10,9 +10,9 @@ import '../library/providers/library_providers.dart';
 import '../lyrics/services/lyrics_service.dart';
 import '../lyrics/lyrics_editor_screen.dart';
 import '../lyrics/lyrics_search_screen.dart';
+import '../lyrics/lyrics_screen.dart';
 import '../playlists/components/add_to_playlist_sheet.dart';
 import '../settings/providers/font_provider.dart';
-import 'components/lyrics_view.dart';
 import 'services/audio_player_service.dart';
 import 'services/queue_service.dart';
 
@@ -31,8 +31,6 @@ class NowPlayingScreen extends ConsumerStatefulWidget {
 }
 
 class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
-  bool _showLyrics = false;
-
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds.remainder(60);
@@ -54,7 +52,6 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     final hasPrevious = ref.watch(hasPreviousSongProvider);
     final shuffleEnabled = ref.watch(shuffleEnabledProvider);
     final repeatMode = ref.watch(repeatModeProvider);
-    final lyricsAsync = ref.watch(currentSongLyricsProvider);
     final selectedFont = ref.watch(fontProvider).fontFamily;
 
     if (currentSong == null) {
@@ -94,69 +91,35 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
               flex: 5,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
-                child: _showLyrics
-                    ? lyricsAsync.when(
-                        data: (lyrics) {
-                          if (lyrics == null) {
-                            return const Center(
-                              child: Text(
-                                'No lyrics available',
-                                style: TextStyle(color: Colors.white54),
-                              ),
-                            );
-                          }
-                          return LyricsView(
-                            lyrics: lyrics,
-                            position: playerState.position,
-                            onSeek: (position) {
-                              ref
-                                  .read(audioPlayerServiceProvider.notifier)
-                                  .seek(position);
-                            },
-                          );
-                        },
-                        loading: () => const Center(
-                          child: CupertinoActivityIndicator(
-                            color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
                           ),
-                        ),
-                        error: (error, stack) => const Center(
-                          child: Text(
-                            'Error loading lyrics',
-                            style: TextStyle(color: Colors.white54),
-                          ),
-                        ),
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.4),
-                                  blurRadius: 30,
-                                  offset: const Offset(0, 15),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: currentSong.artworkPath != null
-                                  ? Image.file(
-                                      File(currentSong.artworkPath!),
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              _defaultArtwork(),
-                                    )
-                                  : _defaultArtwork(),
-                            ),
-                          ),
-                        ),
+                        ],
                       ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: currentSong.artworkPath != null
+                            ? Image.file(
+                                File(currentSong.artworkPath!),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _defaultArtwork(),
+                              )
+                            : _defaultArtwork(),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
 
@@ -508,20 +471,20 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                     ),
                   ),
 
-                  // Lyrics
+                  // Lyrics - Navigate to full screen
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: () {
-                      setState(() {
-                        _showLyrics = !_showLyrics;
-                      });
+                      Navigator.of(context).push(
+                        CupertinoPageRoute(
+                          builder: (context) => LyricsScreen(song: currentSong),
+                        ),
+                      );
                     },
                     child: Icon(
                       CupertinoIcons.text_quote,
                       size: 24,
-                      color: _showLyrics
-                          ? AppTheme.primaryColor
-                          : Colors.white.withValues(alpha: 0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
