@@ -1,0 +1,55 @@
+name: iOS-ipa-build
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  build-ios:
+    name: 🎉 iOS IPA Build
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Update CocoaPods repo
+        run: pod repo update
+        working-directory: ios
+
+      - name: Build iOS app (no code signing)
+        run: |
+          export CODE_SIGNING_ALLOWED=NO
+          export CODE_SIGNING_REQUIRED=NO
+          export CODE_SIGN_IDENTITY=""
+          flutter build ios --release --no-codesign
+
+      - name: Create IPA
+        run: |
+          # Create Payload directory
+          mkdir -p Payload
+
+          # Move Runner.app to Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+
+          # Create IPA (zip file with .ipa extension)
+          zip -r -q FlutterIpaExport.ipa Payload
+
+          # Verify IPA was created
+          ls -lh FlutterIpaExport.ipa
+        working-directory: ./
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: FlutterIpaExport.ipa
+          retention-days: 7

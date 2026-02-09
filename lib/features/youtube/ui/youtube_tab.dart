@@ -2,12 +2,24 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../ui/components/glass_container.dart';
 import '../services/youtube_service.dart';
 import '../models/youtube_video.dart';
 import '../../player/services/audio_player_service.dart';
+import '../../download/services/download_service.dart';
 
-final youtubeSearchQueryProvider = StateProvider<String>((ref) => '');
+class YouTubeSearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void update(String value) {
+    state = value;
+  }
+}
+
+final youtubeSearchQueryProvider =
+    NotifierProvider<YouTubeSearchQueryNotifier, String>(
+      YouTubeSearchQueryNotifier.new,
+    );
 
 final youtubeSearchResultsProvider = FutureProvider<List<YouTubeVideo>>((
   ref,
@@ -48,7 +60,7 @@ class YouTubeTab extends ConsumerWidget {
                 placeholder: 'Search YouTube',
                 style: const TextStyle(color: AppTheme.textPrimary),
                 onSubmitted: (value) {
-                  ref.read(youtubeSearchQueryProvider.notifier).state = value;
+                  ref.read(youtubeSearchQueryProvider.notifier).update(value);
                 },
               ),
             ),
@@ -97,26 +109,33 @@ class YouTubeTab extends ConsumerWidget {
   }
 }
 
-class _YouTubeVideoTile extends ConsumerWidget {
+class _YouTubeVideoTile extends ConsumerStatefulWidget {
   final YouTubeVideo video;
 
   const _YouTubeVideoTile({required this.video});
 
-  Future<void> _playVideo(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<_YouTubeVideoTile> createState() => _YouTubeVideoTileState();
+}
+
+class _YouTubeVideoTileState extends ConsumerState<_YouTubeVideoTile> {
+  bool _isDownloading = false;
+
+  Future<void> _playVideo() async {
     final service = ref.read(youtubeServiceProvider);
-    final audioUrl = await service.getAudioStreamUrl(video.id);
+    final audioUrl = await service.getAudioStreamUrl(widget.video.id);
 
     if (audioUrl != null) {
       ref
           .read(audioPlayerServiceProvider.notifier)
           .playYouTubeVideo(
             audioUrl,
-            video.title,
-            video.author,
-            video.thumbnailUrl,
+            widget.video.title,
+            widget.video.author,
+            widget.video.thumbnailUrl,
           );
     } else {
-      if (context.mounted) {
+      if (mounted) {
         showCupertinoDialog(
           context: context,
           builder: (ctx) => CupertinoAlertDialog(
@@ -134,10 +153,32 @@ class _YouTubeVideoTile extends ConsumerWidget {
     }
   }
 
+  Future<void> _downloadVideo() async {
+    setState(() => _isDownloading = true);
+
+    // Show Toast/Snackbar
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Starting download...')));
+
+    final downloadService = ref.read(downloadServiceProvider);
+    final success = await downloadService.downloadVideo(widget.video.id);
+
+    if (mounted) {
+      setState(() => _isDownloading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Download complete!' : 'Download failed.'),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _playVideo(context, ref),
+      onTap: _playVideo,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         color: Colors.transparent,
@@ -147,7 +188,7 @@ class _YouTubeVideoTile extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                video.thumbnailUrl,
+                widget.video.thumbnailUrl,
                 width: 80,
                 height: 45,
                 fit: BoxFit.cover,
@@ -169,7 +210,7 @@ class _YouTubeVideoTile extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    video.title,
+                    widget.video.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -180,7 +221,7 @@ class _YouTubeVideoTile extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    video.author,
+                    widget.video.author,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -191,13 +232,29 @@ class _YouTubeVideoTile extends ConsumerWidget {
                 ],
               ),
             ),
-            // Duration
-            Text(
-              _formatDuration(video.duration),
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-              ),
+            // Duration & Download
+            Row(
+              children: [
+                Text(
+                  _formatDuration(widget.video.duration),
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (_isDownloading)
+                  const CupertinoActivityIndicator(radius: 8)
+                else
+                  GestureDetector(
+                    onTap: _downloadVideo,
+                    child: const Icon(
+                      CupertinoIcons.cloud_download,
+                      color: AppTheme.primaryColor,
+                      size: 20,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

@@ -71,5 +71,18 @@
 		</dict>
 	</array>
 
+
+	<!-- Permissions -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to save or select artwork for your music.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>We need access to your music library to play and manage your songs.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to microphone for audio features.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>We need access to documents to save downloaded music.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>We need access to downloads to save music.</string>
+
 </dict>
 </plist>
