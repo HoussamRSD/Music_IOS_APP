@@ -103,71 +103,38 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     return CupertinoPageScaffold(
       backgroundColor: AppTheme.backgroundColor,
       navigationBar: CupertinoNavigationBar(
-        middle: CupertinoSlidingSegmentedControl<int>(
-          backgroundColor: AppTheme.surfaceColor.withValues(alpha: 0.2),
-          thumbColor: AppTheme.surfaceColor,
-          groupValue: selectedSegment,
-          children: const {
-            0: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                'Songs',
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-            1: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                'Playlists',
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-            2: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                'Artists',
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-            3: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(
-                CupertinoIcons.heart_fill,
-                color: Colors.white,
-                size: 16,
-              ),
-            ),
-          },
-          onValueChanged: (value) {
-            if (value != null) {
-              ref.read(libraryTabProvider.notifier).setTab(value);
-            }
+        backgroundColor: Colors.transparent,
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: Icon(
+            isGridView
+                ? CupertinoIcons.list_bullet
+                : CupertinoIcons.square_grid_2x2,
+            color: AppTheme.primaryColor,
+            size: 24,
+          ),
+          onPressed: () {
+            ref.read(isGridViewProvider.notifier).toggle();
           },
         ),
-        backgroundColor: Colors.transparent,
-        leading: selectedSegment == 0
-            ? CupertinoButton(
-                padding: EdgeInsets.zero,
-                child: Icon(
-                  isGridView
-                      ? CupertinoIcons.list_bullet
-                      : CupertinoIcons.square_grid_2x2,
-                  color: AppTheme.primaryColor,
-                  size: 24,
-                ),
-                onPressed: () {
-                  ref.read(isGridViewProvider.notifier).toggle();
-                },
-              )
-            : null,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             CupertinoButton(
               padding: EdgeInsets.zero,
+              onPressed: _importFiles,
               child: const Icon(
-                CupertinoIcons.settings,
+                CupertinoIcons.arrow_down_doc,
                 color: AppTheme.primaryColor,
+                size: 24,
+              ),
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(
+                CupertinoIcons.gear_alt,
+                color: AppTheme.primaryColor,
+                size: 24,
               ),
               onPressed: () {
                 Navigator.of(context, rootNavigator: true).push(
@@ -176,15 +143,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   ),
                 );
               },
-            ),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: _importFiles,
-              child: const Icon(
-                CupertinoIcons.add_circled_solid,
-                color: AppTheme.primaryColor,
-                size: 32,
-              ),
             ),
           ],
         ),
