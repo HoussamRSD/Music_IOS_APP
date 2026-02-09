@@ -155,13 +155,11 @@ class HomeScreen extends ConsumerWidget {
           .findAncestorStateOfType<StatefulNavigationShellState>();
       if (shell != null && tab.branchIndex != null) {
         // Switch branch
-        shell.widget.navigationShell.goBranch(
+        shell.goBranch(
           tab.branchIndex!,
           initialLocation:
               tab.branchIndex ==
               shell
-                  .widget
-                  .navigationShell
                   .currentIndex, // Reset stack if same branch
         );
 
@@ -219,7 +217,7 @@ class HomeScreen extends ConsumerWidget {
           .findAncestorStateOfType<StatefulNavigationShellState>();
       if (shell != null) {
         // Switch to library branch (index 1) which is always there
-        shell.widget.navigationShell.goBranch(1);
+        shell.goBranch(1);
         if (tab.libraryTabIndex != null) {
           ref.read(libraryTabProvider.notifier).setTab(tab.libraryTabIndex!);
         }
@@ -403,16 +401,17 @@ class _NavigationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: GlassContainer(
+      child: SizedBox(
         width: width,
         height: 80,
-        borderRadius: BorderRadius.circular(16),
-        opacity: 0.1,
-        blur: 20,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
+        child: GlassContainer(
+          borderRadius: BorderRadius.circular(16),
+          opacity: 0.1,
+          blur: 20,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -429,6 +428,7 @@ class _NavigationCard extends StatelessWidget {
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),

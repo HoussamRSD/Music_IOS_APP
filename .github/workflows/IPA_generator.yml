@@ -17,14 +17,6 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Show environment diagnostics
-        run: |
-          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          flutter --version
-          xcodebuild -version || true
-          which pod || true
-          pod --version || true
-
       - name: Flutter pub get
         run: flutter pub get
 
@@ -32,34 +24,26 @@ jobs:
         run: pod repo update
         working-directory: ios
 
-      - name: Build IPA (no code signing, verbose)
+      - name: Build iOS app (no code signing)
         run: |
-          set -x
           export CODE_SIGNING_ALLOWED=NO
           export CODE_SIGNING_REQUIRED=NO
           export CODE_SIGN_IDENTITY=""
-          flutter pub get
-          flutter build ipa --release --no-codesign -v
-        timeout-minutes: 60
+          flutter build ios --release --no-codesign
 
-      - name: Create IPA (use built .ipa or fallback)
+      - name: Create IPA
         run: |
-          set -e
-          echo "Listing build/ios contents for debugging"
-          ls -la build/ios || true
-          ls -la build/ios/ipa || true
-          # If flutter produced an .ipa, use it. Otherwise fall back to zipping the Runner.app
-          if [ -f build/ios/ipa/Runner.ipa ]; then
-            echo "Found build/ios/ipa/Runner.ipa — copying to FlutterIpaExport.ipa"
-            cp build/ios/ipa/Runner.ipa FlutterIpaExport.ipa
-            ls -lh FlutterIpaExport.ipa
-          else
-            echo "Runner.ipa not found — falling back to zipping Payload from Runner.app"
-            mkdir -p Payload
-            cp -r build/ios/iphoneos/Runner.app Payload/
-            zip -r -q FlutterIpaExport.ipa Payload
-            ls -lh FlutterIpaExport.ipa
-          fi
+          # Create Payload directory
+          mkdir -p Payload
+
+          # Move Runner.app to Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+
+          # Create IPA (zip file with .ipa extension)
+          zip -r -q FlutterIpaExport.ipa Payload
+
+          # Verify IPA was created
+          ls -lh FlutterIpaExport.ipa
         working-directory: ./
 
       - name: Upload IPA artifact
