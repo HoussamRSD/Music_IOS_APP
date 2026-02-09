@@ -72,6 +72,12 @@
 	</array>
 
 
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>fetch</string>
+	</array>
+
 	<!-- Permissions -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to save or select artwork for your music.</string>
