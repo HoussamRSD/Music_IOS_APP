@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/data/models/song.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_text_styles.dart';
 import '../../ui/components/glass_container.dart';
 import '../library/services/file_import_service.dart';
 import '../library/data/song_repository.dart';
@@ -15,6 +16,7 @@ import 'tabs/playlists_tab.dart';
 import 'tabs/artists_tab.dart';
 import 'tabs/favorites_tab.dart';
 import 'providers/library_providers.dart';
+import '../settings/providers/font_provider.dart';
 
 // Provider for songs list
 final songsProvider = FutureProvider<List<Song>>((ref) async {
@@ -406,6 +408,7 @@ class _SongListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final selectedFont = ref.watch(fontProvider).fontFamily;
     return GlassContainer(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       borderRadius: BorderRadius.circular(12),
@@ -432,7 +435,7 @@ class _SongListTile extends ConsumerWidget {
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.w500,
-          ),
+          ).withAppFont(selectedFont),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -441,7 +444,7 @@ class _SongListTile extends ConsumerWidget {
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.6),
             fontSize: 14,
-          ),
+          ).withAppFont(selectedFont),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),

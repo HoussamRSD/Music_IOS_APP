@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/data/models/lyrics.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_text_styles.dart';
 import '../library/data/song_repository.dart';
 import '../library/library_screen.dart';
 import '../lyrics/services/lyrics_service.dart';
 import '../lyrics/lyrics_editor_screen.dart';
 import '../playlists/components/add_to_playlist_sheet.dart';
+import '../settings/providers/font_provider.dart';
 import 'components/lyrics_view.dart';
 import 'services/audio_player_service.dart';
 import 'services/queue_service.dart';
@@ -52,6 +54,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     final shuffleEnabled = ref.watch(shuffleEnabledProvider);
     final repeatMode = ref.watch(repeatModeProvider);
     final lyricsAsync = ref.watch(currentSongLyricsProvider);
+    final selectedFont = ref.watch(fontProvider).fontFamily;
 
     if (currentSong == null) {
       Navigator.of(context).pop();
@@ -238,7 +241,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                       color: Colors.white,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                    ),
+                    ).withAppFont(selectedFont),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -249,7 +252,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 16,
-                    ),
+                    ).withAppFont(selectedFont),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

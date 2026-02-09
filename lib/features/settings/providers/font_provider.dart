@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/theme/app_text_styles.dart';
 
 const _fontKey = 'app_font_family';
 
@@ -44,3 +45,9 @@ class FontNotifier extends Notifier<AppFont> {
 }
 
 final fontProvider = NotifierProvider<FontNotifier, AppFont>(FontNotifier.new);
+
+/// Provider that gives access to AppTextStyles with the selected font
+final appTextStylesProvider = Provider<AppTextStyles>((ref) {
+  final font = ref.watch(fontProvider);
+  return AppTextStyles(font.fontFamily);
+});

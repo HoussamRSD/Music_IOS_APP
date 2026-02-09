@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/home_screen.dart';
 import 'features/library/library_screen.dart';
@@ -68,6 +69,24 @@ class _GlassAppState extends ConsumerState<GlassApp> {
     );
   }
 
+  // Get the base TextStyle for the selected font
+  TextStyle _getFontTextStyle(String fontFamily) {
+    switch (fontFamily) {
+      case 'Pacifico':
+        return GoogleFonts.pacifico(color: Colors.white);
+      case 'Inter':
+        return GoogleFonts.inter(color: Colors.white);
+      case 'Roboto':
+        return GoogleFonts.roboto(color: Colors.white);
+      case 'Outfit':
+        return GoogleFonts.outfit(color: Colors.white);
+      case 'Montserrat':
+        return GoogleFonts.montserrat(color: Colors.white);
+      default:
+        return GoogleFonts.pacifico(color: Colors.white);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(navigationProvider);
@@ -97,6 +116,13 @@ class _GlassAppState extends ConsumerState<GlassApp> {
       title: 'DOPLIN',
       theme: AppTheme.getDarkTheme(selectedFont.fontFamily),
       routerConfig: _router,
+      // Apply font globally to all child widgets
+      builder: (context, child) {
+        return DefaultTextStyle.merge(
+          style: _getFontTextStyle(selectedFont.fontFamily),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }
