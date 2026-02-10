@@ -137,6 +137,7 @@ class _PlaylistTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final songsAsync = ref.watch(playlistSongsProvider(playlist.id!));
+    final appTextStyles = ref.watch(appTextStylesProvider);
     final songCount = songsAsync.whenOrNull(data: (songs) => songs.length) ?? 0;
 
     return Container(
@@ -161,17 +162,14 @@ class _PlaylistTile extends ConsumerWidget {
         ),
         title: Text(
           playlist.name,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
+          style: appTextStyles
+              .bodyLarge(color: Colors.white)
+              .copyWith(fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
           '$songCount ${songCount == 1 ? 'song' : 'songs'}',
-          style: TextStyle(
+          style: appTextStyles.bodyMedium(
             color: Colors.white.withValues(alpha: 0.5),
-            fontSize: 14,
           ),
         ),
         trailing: const Icon(

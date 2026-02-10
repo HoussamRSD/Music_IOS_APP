@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -27,7 +28,9 @@ class YtDlpService {
       // Check if yt-dlp is available
       final isAvailable = await isYtDlpAvailable();
       if (!isAvailable) {
-        throw Exception('yt-dlp is not installed. Please install it using: pip install yt-dlp');
+        throw Exception(
+          'yt-dlp is not installed. Please install it using: pip install yt-dlp',
+        );
       }
 
       // Prepare download directory
@@ -69,19 +72,19 @@ class YtDlpService {
       // Capture output
       final lines = <String>[];
       process.stdout
-          .transform(const CharCodec().decoder)
+          .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen((line) {
-        lines.add(line);
-        print('[yt-dlp] $line');
-      });
+            lines.add(line);
+            print('[yt-dlp] $line');
+          });
 
       process.stderr
-          .transform(const CharCodec().decoder)
+          .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen((line) {
-        print('[yt-dlp ERROR] $line');
-      });
+            print('[yt-dlp ERROR] $line');
+          });
 
       final exitCode = await process.exitCode;
       if (exitCode != 0) {
@@ -89,12 +92,15 @@ class YtDlpService {
       }
 
       // Find the downloaded file
-      final files = downloadDir
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.endsWith('.m4a'))
-          .toList()
-          ..sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+      final files =
+          downloadDir
+              .listSync()
+              .whereType<File>()
+              .where((f) => f.path.endsWith('.m4a'))
+              .toList()
+            ..sort(
+              (a, b) => b.statSync().modified.compareTo(a.statSync().modified),
+            );
 
       if (files.isEmpty) {
         throw Exception('No audio file found after download');
@@ -150,30 +156,26 @@ class YtDlpService {
 
       // Parse progress from output
       process.stdout
-          .transform(const CharCodec().decoder)
+          .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen((line) {
-        final progressRegex = RegExp(r'(\d+\.\d+)%.*of.*at');
-        final match = progressRegex.firstMatch(line);
+            final progressRegex = RegExp(r'(\d+\.\d+)%.*of.*at');
+            final match = progressRegex.firstMatch(line);
 
-        if (match != null) {
-          final progress = double.parse(match.group(1)!) / 100.0;
-          // yield DownloadProgress(progress: progress, status: line);
-        }
+            if (match != null) {
+              final progress = double.parse(match.group(1)!) / 100.0;
+              // yield DownloadProgress(progress: progress, status: line);
+            }
 
-        if (line.contains('[download]') && line.contains('100%')) {
-          // yield DownloadProgress(progress: 1.0, status: 'Download complete');
-        }
-      });
+            if (line.contains('[download]') && line.contains('100%')) {
+              // yield DownloadProgress(progress: 1.0, status: 'Download complete');
+            }
+          });
 
       await process.exitCode;
     } catch (e) {
       print('Error: $e');
-      yield DownloadProgress(
-        progress: 0,
-        status: 'Error: $e',
-        isError: true,
-      );
+      yield DownloadProgress(progress: 0, status: 'Error: $e', isError: true);
     }
   }
 }

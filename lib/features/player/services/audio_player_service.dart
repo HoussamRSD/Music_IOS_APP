@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/models/song.dart';
+import 'package:flutter/foundation.dart';
 import '../../lyrics/services/lyrics_service.dart';
 import 'audio_handler.dart';
 
@@ -91,9 +92,13 @@ class AudioPlayerController extends Notifier<PlayerState> {
       // If DB miss, it reads file. Reading file takes ~10-50ms.
       // So awaiting is safe and ensures cache is populated.
       try {
-        await ref.read(lyricsServiceProvider).getLyrics(song);
+        debugPrint('AudioPlayerService: Pre-fetching lyrics for ${song.title}');
+        final l = await ref.read(lyricsServiceProvider).getLyrics(song);
+        debugPrint(
+          'AudioPlayerService: Pre-fetch result: ${l != null ? "Found" : "Not Found"}',
+        );
       } catch (e) {
-        // Ignore errors during pre-fetch
+        debugPrint('AudioPlayerService: Pre-fetch error: $e');
       }
 
       if (_audioHandler != null) {

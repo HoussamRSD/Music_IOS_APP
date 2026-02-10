@@ -18,13 +18,22 @@ class LyricsService {
   Future<Lyrics?> getLyrics(Song song) async {
     if (song.id == null) return null;
 
+    debugPrint(
+      'LyricsService: Getting lyrics for ${song.title} (ID: ${song.id})',
+    );
+
     // 1. Check database first
     final cached = await _repository.getLyrics(song.id!);
-    if (cached != null) return cached;
+    if (cached != null) {
+      debugPrint('LyricsService: Found cached lyrics for ${song.title}');
+      return cached;
+    }
 
     // 2. Try to find local LRC file
+    debugPrint('LyricsService: Checking local LRC for ${song.filePath}');
     final localLrc = await _findLocalLrc(song.filePath);
     if (localLrc != null) {
+      debugPrint('LyricsService: Found local LRC');
       final lyrics = Lyrics(
         songId: song.id!,
         syncedLyrics: _parseLrc(localLrc),
@@ -36,19 +45,25 @@ class LyricsService {
     }
 
     // 3. Try embedded lyrics
+    debugPrint('LyricsService: Checking embedded lyrics');
     final embedded = await _extractEmbeddedLyrics(song.filePath, song.id!);
     if (embedded != null) {
+      debugPrint('LyricsService: Found embedded lyrics');
       await _repository.saveLyrics(embedded);
       return embedded;
+    } else {
+      debugPrint('LyricsService: No embedded lyrics found');
     }
 
     // 4. Search online via LRCLIB
+    debugPrint('LyricsService: Searching online');
     final online = await _searchOnline(song);
     if (online != null) {
       await _repository.saveLyrics(online);
       return online;
     }
 
+    debugPrint('LyricsService: No lyrics found anywhere');
     return null;
   }
 

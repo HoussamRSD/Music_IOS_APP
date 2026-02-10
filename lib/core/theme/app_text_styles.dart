@@ -6,18 +6,54 @@ extension AppTextStyleExtension on TextStyle {
   /// Apply the selected font family while preserving other style properties
   TextStyle withAppFont(String fontFamily) {
     switch (fontFamily) {
+      // Script / decorative
       case 'Pacifico':
         return GoogleFonts.pacifico(textStyle: this);
+      case 'Abril Fatface':
+        return GoogleFonts.abrilFatface(textStyle: this);
+      case 'Bebas Neue':
+        return GoogleFonts.bebasNeue(textStyle: this);
+
+      // Modern UI / very good in bold
       case 'Inter':
         return GoogleFonts.inter(textStyle: this);
       case 'Roboto':
         return GoogleFonts.roboto(textStyle: this);
-      case 'Outfit':
-        return GoogleFonts.outfit(textStyle: this);
+      case 'Poppins':
+        return GoogleFonts.poppins(textStyle: this);
+      case 'DM Sans':
+        return GoogleFonts.dmSans(textStyle: this);
+      case 'Work Sans':
+        return GoogleFonts.workSans(textStyle: this);
       case 'Montserrat':
         return GoogleFonts.montserrat(textStyle: this);
+      case 'Outfit':
+        return GoogleFonts.outfit(textStyle: this);
+
+      // Classic “popular” sans (bold looks solid)
+      case 'Open Sans':
+        return GoogleFonts.openSans(textStyle: this);
+      case 'Lato':
+        return GoogleFonts.lato(textStyle: this);
+      case 'Raleway':
+        return GoogleFonts.raleway(textStyle: this);
+      case 'Nunito':
+        return GoogleFonts.nunito(textStyle: this);
+      case 'Source Sans 3':
+        return GoogleFonts.sourceSans3(textStyle: this);
+      case 'Ubuntu':
+        return GoogleFonts.ubuntu(textStyle: this);
+      case 'Oswald':
+        return GoogleFonts.oswald(textStyle: this);
+
+      // Serif options (nice bold titles)
+      case 'Playfair Display':
+        return GoogleFonts.playfairDisplay(textStyle: this);
+      case 'Merriweather':
+        return GoogleFonts.merriweather(textStyle: this);
+
       default:
-        return GoogleFonts.pacifico(textStyle: this);
+        return GoogleFonts.inter(textStyle: this);
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:flutter_audio_tagger/tag.dart';
 
@@ -81,13 +82,19 @@ class LyricsWriterService {
   /// Read embedded lyrics from audio file
   Future<String?> readEmbeddedLyrics(String filePath) async {
     try {
+      debugPrint('LyricsWriterService: Reading embedded lyrics from $filePath');
       final tag = await _tagger.getAllTags(filePath);
-      return tag?.lyrics;
+      final l = tag?.lyrics;
+      debugPrint(
+        'LyricsWriterService: Read result: ${l?.isNotEmpty == true ? "Found (${l!.length} chars)" : "Null/Empty"}',
+      );
+      return l;
     } catch (e) {
       developer.log(
         'Error reading embedded lyrics: $e',
         name: 'LyricsWriterService',
       );
+      debugPrint('LyricsWriterService: Error: $e');
       return null;
     }
   }
