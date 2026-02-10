@@ -11,74 +11,109 @@ class LyricsWriterService {
 
   /// Write plain text lyrics to audio file USLT frame
   Future<bool> writePlainLyrics(String filePath, String lyrics) async {
+    bool nativeSuccess = false;
     try {
       // Read existing metadata
       final tag = await _tagger.getAllTags(filePath);
-      // Note: If reading fails (e.g. file locked), we can't preserve tags.
-      // But we can try to write anyway if we accept risk, or fail.
-      if (tag == null) {
-        developer.log(
-          'Could not read tags for $filePath. File might be locked or corrupt.',
-          name: 'LyricsWriterService',
+
+      if (tag != null) {
+        // Create updated tag with new lyrics
+        final updatedTag = Tag(
+          title: tag.title,
+          artist: tag.artist,
+          album: tag.album,
+          year: tag.year,
+          genre: tag.genre,
+          artwork: tag.artwork,
+          lyrics: lyrics,
         );
-        return false;
+
+        // Write back to file
+        await _tagger.editTags(updatedTag, filePath);
+        nativeSuccess = true;
       }
-
-      // Create updated tag with new lyrics
-      final updatedTag = Tag(
-        title: tag.title,
-        artist: tag.artist,
-        album: tag.album,
-        year: tag.year,
-        genre: tag.genre,
-        artwork: tag.artwork,
-        lyrics: lyrics,
-      );
-
-      // Write back to file
-      await _tagger.editTags(updatedTag, filePath);
-
-      return true;
     } catch (e) {
       developer.log(
-        'Error writing plain lyrics: $e',
+        'Error writing plain lyrics natively: $e',
         name: 'LyricsWriterService',
       );
-      return false;
     }
+
+    if (nativeSuccess) return true;
+
+    // Fallback to Python script
+    return await _writeLyricsWithPython(filePath, lyrics);
   }
 
   /// Write synced LRC lyrics to audio file
   /// Note: This writes LRC as plain text to USLT frame
-  /// Some players may parse it as synced lyrics
   Future<bool> writeSyncedLyrics(String filePath, String lrcContent) async {
+    bool nativeSuccess = false;
     try {
       // Read existing metadata
       final tag = await _tagger.getAllTags(filePath);
-      if (tag == null) return false;
+      if (tag != null) {
+        // Create updated tag with LRC content as lyrics
+        final updatedTag = Tag(
+          title: tag.title,
+          artist: tag.artist,
+          album: tag.album,
+          year: tag.year,
+          genre: tag.genre,
+          artwork: tag.artwork,
+          lyrics: lrcContent,
+        );
 
-      // Create updated tag with LRC content as lyrics
-      final updatedTag = Tag(
-        title: tag.title,
-        artist: tag.artist,
-        album: tag.album,
-        year: tag.year,
-        genre: tag.genre,
-        artwork: tag.artwork,
-        lyrics: lrcContent,
-      );
-
-      // Write back to file
-      await _tagger.editTags(updatedTag, filePath);
-
-      return true;
+        // Write back to file
+        await _tagger.editTags(updatedTag, filePath);
+        nativeSuccess = true;
+      }
     } catch (e) {
       developer.log(
-        'Error writing synced lyrics: $e',
+        'Error writing synced lyrics natively: $e',
         name: 'LyricsWriterService',
       );
-      return false;
     }
+
+    if (nativeSuccess) return true;
+
+    // Fallback to Python script
+    return await _writeLyricsWithPython(filePath, lrcContent);
+  }
+
+  Future<bool> _writeLyricsWithPython(String filePath, String lyrics) async {
+    debugPrint(
+      'LyricsWriterService: Trying Python script fallback for writing...',
+    );
+    try {
+      final scriptPath = 'scripts/write_lyrics.py';
+      if (await File(scriptPath).exists()) {
+        final result = await Process.run('python', [
+          scriptPath,
+          filePath,
+          lyrics,
+        ], stdoutEncoding: utf8);
+
+        if (result.exitCode == 0) {
+          debugPrint(
+            'LyricsWriterService: Python script wrote lyrics successfully!',
+          );
+          return true;
+        } else {
+          debugPrint(
+            'LyricsWriterService: Python write failed (code ${result.exitCode})',
+          );
+          debugPrint('LyricsWriterService: Python stderr: ${result.stderr}');
+        }
+      } else {
+        debugPrint(
+          'LyricsWriterService: Python script not found at $scriptPath',
+        );
+      }
+    } catch (e) {
+      debugPrint('LyricsWriterService: Python write error: $e');
+    }
+    return false;
   }
 
   /// Read embedded lyrics from audio file
@@ -123,6 +158,9 @@ class LyricsWriterService {
               debugPrint(
                 'LyricsWriterService: Python script failed (code ${result.exitCode})',
               );
+              debugPrint(
+                'LyricsWriterService: Python stderr: ${result.stderr}',
+              );
             }
           } else {
             debugPrint(
@@ -149,12 +187,16 @@ class LyricsWriterService {
   }
 
   /// Check if file is writable
+  /// Returns true if native tagger works OR if Python script is available
   Future<bool> canWriteToFile(String filePath) async {
     try {
       final tag = await _tagger.getAllTags(filePath);
-      return tag != null;
+      if (tag != null) return true;
     } catch (e) {
-      return false;
+      // Ignore
     }
+
+    // Check fallback availability
+    return await File('scripts/write_lyrics.py').exists();
   }
 }
