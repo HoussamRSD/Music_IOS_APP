@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:flutter_audio_tagger/tag.dart';
@@ -82,13 +84,60 @@ class LyricsWriterService {
   /// Read embedded lyrics from audio file
   Future<String?> readEmbeddedLyrics(String filePath) async {
     try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        debugPrint('LyricsWriterService: File not found at $filePath');
+        return null;
+      }
+
       debugPrint('LyricsWriterService: Reading embedded lyrics from $filePath');
-      final tag = await _tagger.getAllTags(filePath);
-      final l = tag?.lyrics;
+
+      // 1. Try FlutterAudioTagger
+      String? lyrics;
+      try {
+        final tag = await _tagger.getAllTags(filePath);
+        lyrics = tag?.lyrics;
+      } catch (e) {
+        debugPrint('LyricsWriterService: FlutterAudioTagger failed: $e');
+      }
+
+      // 2. Fallback to Python script (mutagen) if null or empty
+      if (lyrics == null || lyrics.isEmpty) {
+        debugPrint('LyricsWriterService: Trying Python script fallback...');
+        try {
+          final scriptPath = 'scripts/read_lyrics.py';
+          // Check if script exists
+          if (await File(scriptPath).exists()) {
+            final result = await Process.run('python', [
+              scriptPath,
+              filePath,
+            ], stdoutEncoding: utf8);
+
+            if (result.exitCode == 0) {
+              final output = result.stdout.toString().trim();
+              if (output.isNotEmpty) {
+                lyrics = output;
+                debugPrint('LyricsWriterService: Python script found lyrics!');
+              }
+            } else {
+              debugPrint(
+                'LyricsWriterService: Python script failed (code ${result.exitCode})',
+              );
+            }
+          } else {
+            debugPrint(
+              'LyricsWriterService: Python script not found at $scriptPath',
+            );
+          }
+        } catch (e) {
+          debugPrint('LyricsWriterService: Python fallback error: $e');
+        }
+      }
+
       debugPrint(
-        'LyricsWriterService: Read result: ${l?.isNotEmpty == true ? "Found (${l!.length} chars)" : "Null/Empty"}',
+        'LyricsWriterService: Read result: ${lyrics?.isNotEmpty == true ? "Found (${lyrics!.length} chars)" : "Null/Empty"}',
       );
-      return l;
+      return lyrics;
     } catch (e) {
       developer.log(
         'Error reading embedded lyrics: $e',
