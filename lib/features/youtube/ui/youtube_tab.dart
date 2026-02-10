@@ -15,13 +15,17 @@ class YouTubeTab extends ConsumerStatefulWidget {
   ConsumerState<YouTubeTab> createState() => _YouTubeTabState();
 }
 
-class _YouTubeTabState extends ConsumerState<YouTubeTab> {
+class _YouTubeTabState extends ConsumerState<YouTubeTab>
+    with AutomaticKeepAliveClientMixin {
   late WebViewController _webViewController;
   bool _isLoading = true;
   bool _canGoBack = false;
   bool _canGoForward = false;
 
   static const String _homeUrl = 'https://m.youtube.com';
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -299,143 +303,169 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Custom Header with Browser Controls
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: AppTheme.backgroundColor,
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Title
-                      const Text(
-                        'YouTube Browser',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+
+        if (await _webViewController.canGoBack()) {
+          _webViewController.goBack();
+        } else {
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: CupertinoPageScaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom Header with Browser Controls
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                color: AppTheme.backgroundColor,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Title
+                        const Text(
+                          'YouTube Browser',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+                        // Action Buttons (Download & Background Play)
+                        Row(
+                          children: [
+                            CupertinoButton(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              onPressed: _playCurrentVideoInBackground,
+                              child: const Icon(
+                                CupertinoIcons.play_circle_fill,
+                                size: 26,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                            CupertinoButton(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              onPressed: _downloadCurrentVideo,
+                              child: const Icon(
+                                CupertinoIcons.cloud_download,
+                                size: 24,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Browser Navigation Bar
+                    Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      // Action Buttons (Download & Background Play)
-                      Row(
+                      child: Row(
                         children: [
+                          // Back
                           CupertinoButton(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            onPressed: _playCurrentVideoInBackground,
-                            child: const Icon(
-                              CupertinoIcons.play_circle_fill,
-                              size: 26,
-                              color: AppTheme.primaryColor,
+                            padding: EdgeInsets.zero,
+                            onPressed: _canGoBack
+                                ? () async {
+                                    if (await _webViewController.canGoBack()) {
+                                      _webViewController.goBack();
+                                    }
+                                  }
+                                : null,
+                            child: Icon(
+                              CupertinoIcons.chevron_back,
+                              color: _canGoBack ? Colors.white : Colors.white24,
                             ),
                           ),
+                          // Forward
                           CupertinoButton(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            onPressed: _downloadCurrentVideo,
+                            padding: EdgeInsets.zero,
+                            onPressed: _canGoForward
+                                ? () async {
+                                    if (await _webViewController
+                                        .canGoForward()) {
+                                      _webViewController.goForward();
+                                    }
+                                  }
+                                : null,
+                            child: Icon(
+                              CupertinoIcons.chevron_forward,
+                              color: _canGoForward
+                                  ? Colors.white
+                                  : Colors.white24,
+                            ),
+                          ),
+                          // Spacer
+                          const Spacer(),
+                          // Home
+                          CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              _webViewController.loadRequest(
+                                Uri.parse(_homeUrl),
+                              );
+                            },
                             child: const Icon(
-                              CupertinoIcons.cloud_download,
-                              size: 24,
-                              color: AppTheme.textPrimary,
+                              CupertinoIcons.house_fill,
+                              color: Colors.white70,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Refresh
+                          CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              _webViewController.reload();
+                            },
+                            child: const Icon(
+                              CupertinoIcons.refresh,
+                              color: Colors.white70,
+                              size: 20,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Browser Navigation Bar
-                  Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Row(
-                      children: [
-                        // Back
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: _canGoBack
-                              ? () async {
-                                  if (await _webViewController.canGoBack()) {
-                                    _webViewController.goBack();
-                                  }
-                                }
-                              : null,
-                          child: Icon(
-                            CupertinoIcons.chevron_back,
-                            color: _canGoBack ? Colors.white : Colors.white24,
-                          ),
-                        ),
-                        // Forward
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: _canGoForward
-                              ? () async {
-                                  if (await _webViewController.canGoForward()) {
-                                    _webViewController.goForward();
-                                  }
-                                }
-                              : null,
-                          child: Icon(
-                            CupertinoIcons.chevron_forward,
-                            color: _canGoForward
-                                ? Colors.white
-                                : Colors.white24,
-                          ),
-                        ),
-                        // Spacer
-                        const Spacer(),
-                        // Home
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            _webViewController.loadRequest(Uri.parse(_homeUrl));
-                          },
-                          child: const Icon(
-                            CupertinoIcons.house_fill,
-                            color: Colors.white70,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Refresh
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            _webViewController.reload();
-                          },
-                          child: const Icon(
-                            CupertinoIcons.refresh,
-                            color: Colors.white70,
-                            size: 20,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Progress Indicator
-            if (_isLoading)
-              LinearProgressIndicator(
-                minHeight: 2,
-                backgroundColor: Colors.transparent,
-                valueColor: AlwaysStoppedAnimation(
-                  AppTheme.primaryColor.withOpacity(0.8),
+                  ],
                 ),
               ),
 
-            // WebView
-            Expanded(child: WebViewWidget(controller: _webViewController)),
-          ],
+              // Progress Indicator
+              if (_isLoading)
+                LinearProgressIndicator(
+                  minHeight: 2,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation(
+                    AppTheme.primaryColor.withOpacity(0.8),
+                  ),
+                ),
+
+              // WebView
+              Expanded(child: WebViewWidget(controller: _webViewController)),
+            ],
+          ),
         ),
       ),
     );
