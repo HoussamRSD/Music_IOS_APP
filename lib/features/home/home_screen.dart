@@ -18,6 +18,8 @@ import '../navigation/providers/navigation_provider.dart';
 import '../library/providers/library_providers.dart';
 import '../settings/providers/font_provider.dart';
 
+import '../library/services/library_scanner_service.dart';
+
 final homeSongsProvider = FutureProvider<List<Song>>((ref) async {
   final repository = ref.watch(songRepositoryProvider);
   return await repository.getAllSongs();
@@ -28,11 +30,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-import '../library/services/library_scanner_service.dart';
-
-// ... (imports)
-
-  final libraryState = ref.watch(homeSongsProvider);
+    final libraryState = ref.watch(homeSongsProvider);
     final appTextStyles = ref.watch(appTextStylesProvider);
 
     return CupertinoPageScaffold(
@@ -59,7 +57,7 @@ import '../library/services/library_scanner_service.dart';
                 color: AppTheme.primaryColor,
               ),
             ),
-             CupertinoButton(
+            CupertinoButton(
               padding: EdgeInsets.zero,
               child: const Icon(
                 CupertinoIcons.gear_alt,
@@ -79,7 +77,7 @@ import '../library/services/library_scanner_service.dart';
       child: CustomScrollView(
         slivers: [
           const SliverPadding(
-            padding: EdgeInsets.only(top: 20),
+            padding: EdgeInsets.only(top: 100),
           ), // Added top padding
           // Greeting & Navigation Grid
           SliverToBoxAdapter(
@@ -378,7 +376,7 @@ import '../library/services/library_scanner_service.dart';
         );
       } catch (e) {
         if (!context.mounted) return;
-        
+
         // Dismiss loading dialog if still open
         if (Navigator.of(context, rootNavigator: true).canPop()) {
           Navigator.of(context, rootNavigator: true).pop();
@@ -402,7 +400,7 @@ import '../library/services/library_scanner_service.dart';
       }
     } catch (e) {
       if (!context.mounted) return;
-      
+
       // Try to dismiss any open dialog
       try {
         if (Navigator.of(context, rootNavigator: true).canPop()) {
