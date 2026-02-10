@@ -9,7 +9,7 @@ class LrclibService {
   static const String _baseUrl = 'https://lrclib.net/api';
   static const String _userAgent = 'DOPLIN/1.0 (https://github.com/doplin-app)';
 
-  /// Search for lyrics using track info
+  /// Search lyrics using track info
   /// Returns lyrics if found, null otherwise
   Future<LrclibResult?> searchLyrics({
     required String trackName,
@@ -18,10 +18,16 @@ class LrclibService {
     int? durationSeconds,
   }) async {
     try {
-      // First try the get endpoint with exact match
+      // Clean the title using the logic from Python script
+      final cleanTrackName = _cleanTitle(trackName);
+      debugPrint(
+        'LRCLIB: Original title: "$trackName" -> Cleaned: "$cleanTrackName"',
+      );
+
+      // First try the get endpoint with exact match if duration is available
       if (durationSeconds != null) {
         final getResult = await _getLyrics(
-          trackName: trackName,
+          trackName: cleanTrackName,
           artistName: artistName,
           albumName: albumName ?? '',
           duration: durationSeconds,
@@ -29,8 +35,8 @@ class LrclibService {
         if (getResult != null) return getResult;
       }
 
-      // Fall back to search endpoint
-      return await _searchLyrics(trackName, artistName);
+      // Fall back to search endpoint with cleaning and duration filtering
+      return await _searchLyrics(cleanTrackName, artistName, durationSeconds);
     } catch (e) {
       debugPrint('LRCLIB search error: $e');
       return null;
@@ -66,16 +72,17 @@ class LrclibService {
     return null;
   }
 
-  /// Search lyrics by keywords
+  /// Search lyrics by keywords and filter by duration
   Future<LrclibResult?> _searchLyrics(
     String trackName,
     String artistName,
+    int? duration,
   ) async {
     try {
-      final query = '$trackName $artistName';
-      final uri = Uri.parse(
-        '$_baseUrl/search',
-      ).replace(queryParameters: {'q': query});
+      // Use specific query parameters as per Python script logic
+      final uri = Uri.parse('$_baseUrl/search').replace(
+        queryParameters: {'track_name': trackName, 'artist_name': artistName},
+      );
 
       final response = await http.get(uri, headers: {'User-Agent': _userAgent});
 
@@ -83,13 +90,68 @@ class LrclibService {
         final List<dynamic> results = jsonDecode(response.body);
         if (results.isEmpty) return null;
 
-        // Take the first (best) result
-        return _parseResult(results.first);
+        // Filter results logic from Python script:
+        // if duration_file:
+        //    if abs(duration_lyric - duration_file) > 20: continue
+
+        for (final data in results) {
+          final resultDuration = data['duration'] as int?;
+
+          if (duration != null && resultDuration != null) {
+            final diff = (resultDuration - duration).abs();
+            if (diff > 20) {
+              continue; // Skip if duration mismatch > 20s
+            }
+          }
+
+          final result = _parseResult(data);
+          if (result != null) {
+            return result; // Return first matching result that passes filter
+          }
+        }
       }
     } catch (e) {
       debugPrint('LRCLIB search error: $e');
     }
     return null;
+  }
+
+  /// Clean the title for better search results (Ported from Python script)
+  String _cleanTitle(String title) {
+    String name = title;
+
+    // Remove extension
+    name = name.replaceAll(RegExp(r'\.(mp3|m4a)$', caseSensitive: false), '');
+
+    // Handle "Artist - Title" duplication
+    final parts = name.split(" - ");
+    if (parts.length >= 2 && parts[0].toLowerCase() == parts[1].toLowerCase()) {
+      name = parts.sublist(1).join(" - ");
+    }
+
+    // Remove years like 2020-2029
+    name = name.replaceAll(RegExp(r'\b202[0-9]\b'), '');
+
+    // Garbage removal regexes
+    final List<String> garbage = [
+      r'\(?official\s*(video|audio|music\s*video|lyric\s*video)?\)?',
+      r'\[?official\s*(video|audio|music\s*video|lyric\s*video)?\]?',
+      r'\(?lyrics?\)?',
+      r'\[?lyrics?\]?',
+      r'\(?hq\)?',
+      r'\[?hq\]?',
+      r'remix',
+    ];
+
+    for (final pattern in garbage) {
+      name = name.replaceAll(RegExp(pattern, caseSensitive: false), '');
+    }
+
+    // Normalize
+    name = name.replaceAll("_", " ").trim();
+    name = name.replaceAll(RegExp(r'\s+'), ' ');
+
+    return name.trim();
   }
 
   /// Search lyrics with just a query string (for manual search)
@@ -125,7 +187,7 @@ class LrclibService {
         trackName: data['trackName'] as String? ?? '',
         artistName: data['artistName'] as String? ?? '',
         albumName: data['albumName'] as String?,
-        duration: data['duration'] as int?,
+        duration: (data['duration'] as num?)?.toInt(),
         syncedLyrics: syncedLyrics,
         plainLyrics: plainLyrics,
       );

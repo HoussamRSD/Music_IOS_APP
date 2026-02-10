@@ -15,7 +15,7 @@ class LyricsService {
 
   LyricsService(this._repository, this._writerService, this._lrclibService);
 
-  Future<Lyrics?> getLyrics(Song song) async {
+  Future<Lyrics?> getLyrics(Song song, {bool searchOnline = true}) async {
     if (song.id == null) return null;
 
     debugPrint(
@@ -55,12 +55,14 @@ class LyricsService {
       debugPrint('LyricsService: No embedded lyrics found');
     }
 
-    // 4. Search online via LRCLIB
-    debugPrint('LyricsService: Searching online');
-    final online = await _searchOnline(song);
-    if (online != null) {
-      await _repository.saveLyrics(online);
-      return online;
+    // 4. Search online via LRCLIB (if enabled)
+    if (searchOnline) {
+      debugPrint('LyricsService: Searching online');
+      final online = await _searchOnline(song);
+      if (online != null) {
+        await _repository.saveLyrics(online);
+        return online;
+      }
     }
 
     debugPrint('LyricsService: No lyrics found anywhere');

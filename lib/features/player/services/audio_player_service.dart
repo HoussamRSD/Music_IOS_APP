@@ -92,11 +92,25 @@ class AudioPlayerController extends Notifier<PlayerState> {
       // If DB miss, it reads file. Reading file takes ~10-50ms.
       // So awaiting is safe and ensures cache is populated.
       try {
-        debugPrint('AudioPlayerService: Pre-fetching lyrics for ${song.title}');
-        final l = await ref.read(lyricsServiceProvider).getLyrics(song);
         debugPrint(
-          'AudioPlayerService: Pre-fetch result: ${l != null ? "Found" : "Not Found"}',
+          'AudioPlayerService: Pre-fetching lyrics (local only) for ${song.title}',
         );
+        // Only fetch local/embedded lyrics to avoid network delay
+        final l = await ref
+            .read(lyricsServiceProvider)
+            .getLyrics(song, searchOnline: false);
+        debugPrint(
+          'AudioPlayerService: Local pre-fetch result: ${l != null ? "Found" : "Not Found"}',
+        );
+
+        // Trigger background online search if not found locally
+        if (l == null) {
+          debugPrint('AudioPlayerService: Triggering background online search');
+          ref
+              .read(lyricsServiceProvider)
+              .getLyrics(song, searchOnline: true)
+              .ignore();
+        }
       } catch (e) {
         debugPrint('AudioPlayerService: Pre-fetch error: $e');
       }
