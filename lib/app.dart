@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/home_screen.dart';
 import 'features/library/library_screen.dart';
-import 'features/search/search_screen.dart';
 import 'features/navigation/providers/navigation_provider.dart';
 import 'features/library/providers/library_providers.dart';
 import 'features/settings/providers/font_provider.dart';
@@ -68,14 +67,7 @@ class _GlassAppState extends ConsumerState<GlassApp> {
                 ),
               ],
             ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/search',
-                  builder: (context, state) => const SearchScreen(),
-                ),
-              ],
-            ),
+
             StatefulShellBranch(
               routes: [
                 GoRoute(
