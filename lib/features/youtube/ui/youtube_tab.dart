@@ -220,7 +220,10 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
           children: [
             // 1. Edge-to-Edge WebView
             Padding(
-              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top,
+                bottom: 80, // Space for Bottom Navigation Bar
+              ),
               child: WebViewWidget(controller: _webViewController),
             ),
 
@@ -241,7 +244,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
 
             // 3. Floating Control Menu (Bottom Right)
             Positioned(
-              bottom: 20,
+              bottom: 100, // Raised above Bottom Navigation Bar
               right: 20,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
