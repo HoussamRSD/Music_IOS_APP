@@ -65,6 +65,19 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
           },
           onPageFinished: (String url) async {
             if (mounted) {
+              // INJECT JS TO PREVENT BACKGROUND PAUSE
+              // This overrides the Page Visibility API to always return 'visible'
+              await _webViewController.runJavaScript('''
+                Object.defineProperty(document, 'hidden', { get: function() { return false; } });
+                Object.defineProperty(document, 'visibilityState', { get: function() { return 'visible'; } });
+                
+                var video = document.querySelector('video');
+                if (video) {
+                   video.pause = function() { console.log('Pause prevented!'); };
+                   // Optional: video.play(); 
+                }
+              ''');
+
               final canGoBack = await _webViewController.canGoBack();
               final canGoForward = await _webViewController.canGoForward();
               setState(() {
@@ -121,25 +134,95 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
       final downloadService = ref.read(downloadServiceProvider);
       final youtubeService = ref.read(youtubeServiceProvider);
 
-      final results = await Future.wait([
-        downloadService.getVideoQualities(videoId),
-        youtubeService.getVideoInfo(videoId),
-      ]);
+      // 1. Fetch Video Info first (Lightweight)
+      debugPrint('Fetching Video Info for $videoId...');
+      final videoInfo = await youtubeService
+          .getVideoInfo(videoId)
+          .timeout(const Duration(seconds: 5));
+      debugPrint('Video Info fetched: ${videoInfo?.title}');
+
+      // 2. Fetch Qualities (Heavier, involves manifest)
+      debugPrint('Fetching Video Qualities...');
+      final qualities = await downloadService
+          .getVideoQualities(videoId)
+          .timeout(const Duration(seconds: 10));
+      debugPrint('Qualities fetched: ${qualities.length}');
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog
 
-      // 2. Show Options Sheet
-      _showDownloadOptionsSheet(
-        videoId,
-        results[0] as List<dynamic>, // List<MuxedStreamInfo>
-        results[1] as YouTubeVideo?,
-      );
-    } catch (e) {
+      // 3. Show Options Sheet
+      _showDownloadOptionsSheet(videoId, qualities, videoInfo);
+    } catch (e, stack) {
+      debugPrint('Error in _handleDownload: $e\n$stack');
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog
       _showErrorDialog('Failed to load video info: $e');
     }
+  }
+
+  Future<void> _handleClearData() async {
+    setState(() => _isMenuOpen = false); // Close menu
+
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Clear YouTube Data'),
+        content: const Text(
+          'This will sign you out and clear all local YouTube data (cookies, cache). Are you sure?',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () async {
+              Navigator.pop(context); // Close confirmation
+
+              // Show loading
+              showCupertinoDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const CupertinoAlertDialog(
+                  content: Column(
+                    children: [
+                      CupertinoActivityIndicator(),
+                      SizedBox(height: 10),
+                      Text('Clearing data...'),
+                    ],
+                  ),
+                ),
+              );
+
+              try {
+                // Clear Cookies & Cache
+                await WebViewCookieManager().clearCookies();
+                await _webViewController.clearCache();
+                await _webViewController.clearLocalStorage();
+
+                // Reload Home
+                _webViewController.loadRequest(Uri.parse(_homeUrl));
+
+                if (!mounted) return;
+                Navigator.pop(context); // Close loading
+                _showSuccessDialog(
+                  'Data Cleared',
+                  'You have been signed out and all YouTube data has been cleared.',
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.pop(context); // Close loading
+                _showErrorDialog('Failed to clear data: $e');
+              }
+            },
+            child: const Text('Clear Data'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showDownloadOptionsSheet(
@@ -377,7 +460,9 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
             Padding(
               padding: EdgeInsets.only(
                 top: MediaQuery.of(context).padding.top,
-                bottom: 80, // Space for Bottom Navigation Bar
+                bottom:
+                    kBottomNavigationBarHeight +
+                    MediaQuery.of(context).padding.bottom,
               ),
               child: WebViewWidget(controller: _webViewController),
             ),
@@ -399,7 +484,11 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
 
             // 3. Floating Control Menu (Bottom Right)
             Positioned(
-              bottom: 100, // Raised above Bottom Navigation Bar
+              // Position above App Bottom Bar + YouTube Bottom Bar (~50px) + Buffer
+              bottom:
+                  kBottomNavigationBarHeight +
+                  MediaQuery.of(context).padding.bottom +
+                  60,
               right: 20,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -436,6 +525,13 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
                         _webViewController.loadRequest(Uri.parse(_homeUrl));
                         _toggleMenu();
                       },
+                    ),
+                    const SizedBox(height: 12),
+                    _FloatingMenuItem(
+                      icon: CupertinoIcons.trash,
+                      label: 'Clear Data',
+                      onTap: _handleClearData,
+                      color: Colors.redAccent,
                     ),
                     const SizedBox(height: 12),
                     Row(

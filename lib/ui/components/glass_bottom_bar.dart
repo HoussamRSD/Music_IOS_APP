@@ -43,6 +43,11 @@ class GlassBottomBar extends ConsumerWidget {
     if (tab == NavigationTab.home) {
       return currentBranch == 0;
     }
+    if (tab == NavigationTab.youtube) {
+      return currentBranch == 2;
+    }
+
+    // Logic for Library Tabs (Branch 1)
     if (currentBranch != 1) return false;
 
     switch (tab) {

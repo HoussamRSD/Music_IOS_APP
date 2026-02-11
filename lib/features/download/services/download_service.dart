@@ -19,12 +19,16 @@ class DownloadService {
   DownloadService(this._ref);
 
   Future<List<MuxedStreamInfo>> getVideoQualities(String videoId) async {
+    // Create a local instance to avoid shared state issues/crashes
+    final yt = YoutubeExplode();
     try {
-      final manifest = await _yt.videos.streamsClient.getManifest(videoId);
+      final manifest = await yt.videos.streamsClient.getManifest(videoId);
       return manifest.muxed.sortByVideoQuality();
     } catch (e) {
       debugPrint('Error fetching qualities: $e');
       return [];
+    } finally {
+      yt.close();
     }
   }
 

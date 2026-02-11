@@ -40,8 +40,9 @@ class YouTubeService {
 
   /// Fetches video metadata for background playback display
   Future<YouTubeVideo?> getVideoInfo(String videoId) async {
+    final yt = YoutubeExplode();
     try {
-      final video = await _yt.videos.get(videoId);
+      final video = await yt.videos.get(videoId);
       return YouTubeVideo(
         id: video.id.value,
         title: video.title,
@@ -53,6 +54,8 @@ class YouTubeService {
       );
     } catch (e) {
       return null;
+    } finally {
+      yt.close();
     }
   }
 
