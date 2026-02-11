@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'app.dart';
-
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/services.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize MetadataGod for audio metadata extraction (required since v0.4.0)
@@ -24,6 +24,10 @@ void main() {
 
   // Enable edge-to-edge mode
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+  // Initialize Audio Session
+  final session = await AudioSession.instance;
+  await session.configure(const AudioSessionConfiguration.music());
 
   runApp(const ProviderScope(child: GlassApp()));
 }

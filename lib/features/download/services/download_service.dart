@@ -18,91 +18,154 @@ class DownloadService {
 
   DownloadService(this._ref);
 
-  Future<bool> downloadVideo(String videoId, {bool safeMode = false}) async {
+  Future<List<MuxedStreamInfo>> getVideoQualities(String videoId) async {
     try {
-      // 1. Get Video & Stream Info
+      final manifest = await _yt.videos.streamsClient.getManifest(videoId);
+      return manifest.muxed.sortByVideoQuality();
+    } catch (e) {
+      debugPrint('Error fetching qualities: $e');
+      return [];
+    }
+  }
+
+  Future<bool> downloadVideo(
+    String videoId, {
+    bool isAudioOnly = true,
+    bool safeMode = false,
+    String? qualityLabel,
+  }) async {
+    try {
+      // 1. Get Video Info
       final video = await _yt.videos.get(videoId);
       final manifest = await _yt.videos.streamsClient.getManifest(videoId);
-      final audioStreamInfo = manifest.audioOnly.withHighestBitrate();
+
+      StreamInfo streamInfo;
+      String extension;
+
+      if (isAudioOnly) {
+        streamInfo = manifest.audioOnly.withHighestBitrate();
+        extension = 'm4a';
+      } else {
+        // Video Mode: Find requested quality or best muxed
+        final muxed = manifest.muxed;
+        if (qualityLabel != null) {
+          streamInfo = muxed.firstWhere(
+            (s) => s.videoQuality.toString() == qualityLabel,
+            orElse: () => muxed.withHighestBitrate(),
+          );
+        } else {
+          streamInfo = muxed.withHighestBitrate();
+        }
+        extension = 'mp4';
+      }
 
       // 2. Prepare Directory
       final appDir = await getApplicationDocumentsDirectory();
       // Use lowercase 'music' to match LibraryScannerService
-      final downloadDir = Directory('${appDir.path}/music/Downloads');
+      // Subfolder based on type
+      final folder = isAudioOnly ? 'Downloads' : 'Videos';
+      final downloadDir = Directory('${appDir.path}/music/$folder');
       if (!await downloadDir.exists()) {
         await downloadDir.create(recursive: true);
       }
 
       // 3. Download to Temp File
-      final stream = _yt.videos.streamsClient.get(audioStreamInfo);
-      final tempFilePath = '${downloadDir.path}/${video.id}.m4a';
+      final stream = _yt.videos.streamsClient.get(streamInfo);
+      final tempFilePath = '${downloadDir.path}/${video.id}.$extension';
       final file = File(tempFilePath);
       final fileStream = file.openWrite();
       await stream.pipe(fileStream);
       await fileStream.flush();
       await fileStream.close();
 
-      // 4. Metadata & Renaming
-      var title = video.title;
-      var artist = video.author;
-      var album = "YouTube";
-      var artworkUrl = video.thumbnails.highResUrl;
-      String? lyrics;
+      String finalFileName;
 
-      if (!safeMode) {
-        final metadata = await _identifySong(title); // iTunes search
-        if (metadata != null) {
-          title = metadata['title'];
-          artist = metadata['artist'];
-          album = metadata['album'];
-          artworkUrl = metadata['artwork_url'].replaceAll('100x100', '600x600');
-        }
+      if (isAudioOnly) {
+        // --- AUDIO LOGIC (Smart vs Safe) ---
+        var title = video.title;
+        var artist = video.author;
+        var album = "YouTube";
+        var artworkUrl = video.thumbnails.highResUrl;
+        String? lyrics;
 
-        // Fetch Lyrics
-        try {
-          final lrclib = _ref.read(lrclibServiceProvider);
+        if (!safeMode) {
+          // Clean artist name for better search results
+          var searchArtist = artist
+              .replaceAll(
+                RegExp(r' - Topic$|VEVO|Official', caseSensitive: false),
+                '',
+              )
+              .trim();
 
-          // Calculate duration if available
-          int? duration;
-          if (video.duration != null) {
-            duration = video.duration!.inSeconds;
+          // SMART MODE: Identify & Fetch Metadata
+          final metadata = await _identifySong('$title $searchArtist');
+          if (metadata != null) {
+            title = metadata['title'];
+            artist = metadata['artist'];
+            album = metadata['album'];
+            artworkUrl = metadata['artwork_url'].replaceAll(
+              '100x100',
+              '600x600',
+            );
           }
 
-          final result = await lrclib.searchLyrics(
-            trackName: title,
-            artistName: artist,
-            albumName: album,
-            durationSeconds: duration,
-          );
+          // Fetch Lyrics
+          try {
+            final lrclib = _ref.read(lrclibServiceProvider);
+            int? duration;
+            if (video.duration != null) {
+              duration = video.duration!.inSeconds;
+            }
 
-          if (result != null) {
-            lyrics = result.syncedLyrics ?? result.plainLyrics;
+            final result = await lrclib.searchLyrics(
+              trackName: title,
+              artistName: artist,
+              albumName: album,
+              durationSeconds: duration,
+            );
+
+            if (result != null) {
+              lyrics = result.syncedLyrics ?? result.plainLyrics;
+            }
+          } catch (e) {
+            debugPrint("Lyrics Error: $e");
           }
-        } catch (e) {
-          print("Lyrics Error: $e");
         }
+
+        // Tagging
+        await _tagFile(tempFilePath, title, artist, album, artworkUrl, lyrics);
+
+        // Rename
+        final cleanTitle = title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '');
+        final cleanArtist = artist.replaceAll(RegExp(r'[\\/:*?"<>|]'), '');
+        finalFileName = '$cleanArtist - $cleanTitle.m4a';
+      } else {
+        // --- VIDEO LOGIC (Simple Rename) ---
+        final cleanTitle = video.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '');
+        finalFileName = '$cleanTitle.$extension';
       }
 
-      // 5. Tagging
-      await _tagFile(tempFilePath, title, artist, album, artworkUrl, lyrics);
-
-      // 6. Rename/Move to final path
-      final cleanTitle = title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '');
-      final cleanArtist = artist.replaceAll(RegExp(r'[\\/:*?"<>|]'), '');
-      final finalFileName = '$cleanArtist - $cleanTitle.m4a';
+      // 4. Move to Final Path
       final finalPath = '${downloadDir.path}/$finalFileName';
-
       if (tempFilePath != finalPath) {
-        await file.rename(finalPath);
+        // Ensure unique name
+        String uniquePath = finalPath;
+        int counter = 1;
+        while (await File(uniquePath).exists()) {
+          uniquePath =
+              '${downloadDir.path}/${finalFileName.replaceAll(".$extension", "")} ($counter).$extension';
+          counter++;
+        }
+        await file.rename(uniquePath);
       }
 
-      // 7. Trigger Library Scan
+      // 5. Trigger Library Scan
       final scanner = _ref.read(libraryScannerServiceProvider);
       await scanner.scanLibrary();
 
       return true;
     } catch (e) {
-      print("Download Error: $e");
+      debugPrint("Download Error: $e");
       return false;
     }
   }
@@ -152,7 +215,7 @@ class DownloadService {
           await File(artPath).writeAsBytes(response.bodyBytes);
         }
       } catch (e) {
-        print("Cover download error: $e");
+        debugPrint("Cover download error: $e");
       }
 
       Uint8List? artworkBytes;
@@ -172,7 +235,7 @@ class DownloadService {
 
       await _tagger.editTags(tag, filePath);
     } catch (e) {
-      print("Tagging Error: $e");
+      debugPrint("Tagging Error: $e");
     }
   }
 }

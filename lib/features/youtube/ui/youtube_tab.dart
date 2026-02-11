@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import '../../../core/theme/app_theme.dart';
-// import '../../download/services/download_service.dart'; // Keep for future generic download
+import '../../download/services/download_service.dart'; // Keep for future generic download
 import '../../player/services/audio_player_service.dart';
 import '../models/youtube_video.dart';
 import '../services/youtube_service.dart';
@@ -94,16 +94,157 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
     final url = await _webViewController.currentUrl();
     if (url == null) return;
 
-    // Strict compliance check: Block YouTube downloads
-    if (url.contains('youtube.com') || url.contains('youtu.be')) {
-      _showErrorDialog('Downloading from YouTube is not supported.');
+    final videoId = _extractVideoId(url);
+    if (videoId == null) {
+      _showErrorDialog('No video detected. Please play a video first.');
       return;
     }
 
-    // Placeholder for other sites
-    _showErrorDialog(
-      'Generic file download is not yet implemented. Only YouTube metadata extraction is currently supported via the "Background Audio" feature.',
+    setState(() => _isMenuOpen = false);
+
+    // 1. Fetch Video Metadata & Qualities
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const CupertinoAlertDialog(
+        content: Column(
+          children: [
+            CupertinoActivityIndicator(),
+            SizedBox(height: 10),
+            Text('Fetching video info...'),
+          ],
+        ),
+      ),
     );
+
+    try {
+      final downloadService = ref.read(downloadServiceProvider);
+      final youtubeService = ref.read(youtubeServiceProvider);
+
+      final results = await Future.wait([
+        downloadService.getVideoQualities(videoId),
+        youtubeService.getVideoInfo(videoId),
+      ]);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // 2. Show Options Sheet
+      _showDownloadOptionsSheet(
+        videoId,
+        results[0] as List<dynamic>, // List<MuxedStreamInfo>
+        results[1] as YouTubeVideo?,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      _showErrorDialog('Failed to load video info: $e');
+    }
+  }
+
+  void _showDownloadOptionsSheet(
+    String videoId,
+    List<dynamic> qualities,
+    YouTubeVideo? videoInfo,
+  ) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: Text(videoInfo?.title ?? 'Download Options'),
+        message: const Text('Select format and quality'),
+        actions: [
+          // Section 1: Audio Options
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _startDownload(videoId, isAudio: true, safeMode: false);
+            },
+            child: const Text('🎵 Audio - Smart Mode (Metadata + Lyrics)'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _startDownload(videoId, isAudio: true, safeMode: true);
+            },
+            child: const Text('🛡️ Audio - Safe Mode (As-is)'),
+          ),
+
+          // Section 2: Video Options (Filtered Unique by Quality Label)
+          ...qualities
+              .map((q) {
+                final qualityLabel = q.videoQuality
+                    .toString(); // or custom getter if added
+                // Clean up label if needed, e.g. "VideoQuality.high720" -> "720p"
+                final label =
+                    qualityLabel.split('.').last.replaceAll('high', '') + 'p';
+
+                return CupertinoActionSheetAction(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _startDownload(
+                      videoId,
+                      isAudio: false,
+                      qualityLabel: qualityLabel,
+                    );
+                  },
+                  child: Text('🎬 Video - $label'),
+                );
+              })
+              .toSet()
+              .toList(), // Basic dedup logic might be needed
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startDownload(
+    String videoId, {
+    required bool isAudio,
+    bool safeMode = false,
+    String? qualityLabel,
+  }) async {
+    // Show Progress
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => CupertinoAlertDialog(
+        content: Column(
+          children: [
+            const CupertinoActivityIndicator(),
+            const SizedBox(height: 10),
+            Text(isAudio ? 'Downloading Audio...' : 'Downloading Video...'),
+            if (safeMode)
+              const Text(
+                '(Safe Mode)',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    final success = await ref
+        .read(downloadServiceProvider)
+        .downloadVideo(
+          videoId,
+          isAudioOnly: isAudio,
+          safeMode: safeMode,
+          qualityLabel: qualityLabel,
+        );
+
+    if (!mounted) return;
+    Navigator.pop(context); // Close progress
+
+    if (success) {
+      _showSuccessDialog('Success', 'Download completed successfully!');
+    } else {
+      _showErrorDialog('Download failed. Please try again.');
+    }
   }
 
   Future<void> _playCurrentVideoInBackground() async {
