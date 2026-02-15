@@ -151,11 +151,17 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
 
   Future<void> _handleDownload() async {
     final url = await _webViewController.currentUrl();
-    if (url == null) return;
+    debugPrint('Download: Current URL = $url');
+    if (url == null) {
+      debugPrint('Download: URL is null, returning');
+      return;
+    }
 
     final videoId = _extractVideoId(url);
+    debugPrint('Download: Extracted videoId = $videoId');
     if (videoId == null) {
-      _showErrorDialog('No video detected. Please play a video first.');
+      _showErrorDialog(
+          'No video detected. Please navigate to a YouTube video first.');
       return;
     }
 
@@ -447,10 +453,42 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
 
   String? _extractVideoId(String url) {
     try {
+      final uri = Uri.parse(url);
+
+      // Standard watch URL: youtube.com/watch?v=ID or m.youtube.com/watch?v=ID
       if (url.contains('youtube.com/watch')) {
-        final uri = Uri.parse(url);
         return uri.queryParameters['v'];
-      } else if (url.contains('youtu.be/')) {
+      }
+
+      // Shorts URL: youtube.com/shorts/ID
+      if (url.contains('youtube.com/shorts/')) {
+        final segments = uri.pathSegments;
+        final shortsIndex = segments.indexOf('shorts');
+        if (shortsIndex != -1 && shortsIndex + 1 < segments.length) {
+          return segments[shortsIndex + 1];
+        }
+      }
+
+      // Embed URL: youtube.com/embed/ID
+      if (url.contains('youtube.com/embed/')) {
+        final segments = uri.pathSegments;
+        final embedIndex = segments.indexOf('embed');
+        if (embedIndex != -1 && embedIndex + 1 < segments.length) {
+          return segments[embedIndex + 1];
+        }
+      }
+
+      // Live URL: youtube.com/live/ID
+      if (url.contains('youtube.com/live/')) {
+        final segments = uri.pathSegments;
+        final liveIndex = segments.indexOf('live');
+        if (liveIndex != -1 && liveIndex + 1 < segments.length) {
+          return segments[liveIndex + 1];
+        }
+      }
+
+      // Short URL: youtu.be/ID
+      if (url.contains('youtu.be/')) {
         return url.split('youtu.be/').last.split('?').first;
       }
     } catch (e) {
