@@ -18,8 +18,6 @@ import '../navigation/providers/navigation_provider.dart';
 import '../library/providers/library_providers.dart';
 import '../settings/providers/font_provider.dart';
 
-import '../library/services/library_scanner_service.dart';
-
 final homeSongsProvider = FutureProvider<List<Song>>((ref) async {
   final repository = ref.watch(songRepositoryProvider);
   return await repository.getAllSongs();
@@ -147,14 +145,13 @@ class HomeScreen extends ConsumerWidget {
 
     if (isVisible) {
       // Tab is visible in bottom bar, switch to it using GoRouter
-      final shell = context
-          .findAncestorStateOfType<StatefulNavigationShellState>();
-      if (shell != null && tab.branchIndex != null) {
+      final shell =
+          context.findAncestorStateOfType<StatefulNavigationShellState>();
+      if (shell != null) {
         // Switch branch
         shell.goBranch(
-          tab.branchIndex!,
-          initialLocation:
-              tab.branchIndex ==
+          tab.branchIndex,
+          initialLocation: tab.branchIndex ==
               shell.currentIndex, // Reset stack if same branch
         );
 
@@ -176,8 +173,7 @@ class HomeScreen extends ConsumerWidget {
       // But LibraryScreen handles tabs internally.
       // If we want a standalone page for "Songs" when it's hidden, we need to wrap SongsTab in a Scaffold.
 
-      Widget page;
-      String title = tab.label;
+      // Navigate to library branch and set the tab index
 
       // Lazy import resolution by using a builder or separate file would be cleaner,
       // but for now let's use a simple switch if we have access to the classes.
@@ -208,8 +204,8 @@ class HomeScreen extends ConsumerWidget {
       // The branch itself (Library) is likely still legally accessible.
       // So we can just switch to Library branch and set the libraryTabProvider!
 
-      final shell = context
-          .findAncestorStateOfType<StatefulNavigationShellState>();
+      final shell =
+          context.findAncestorStateOfType<StatefulNavigationShellState>();
       if (shell != null) {
         // Switch to library branch (index 1) which is always there
         shell.goBranch(1);
@@ -231,7 +227,7 @@ class HomeScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(30),
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withOpacity(0.1),
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -260,7 +256,7 @@ class HomeScreen extends ConsumerWidget {
         Text(
           'Supports MP3, FLAC, M4A, WAV',
           style: appTextStyles
-              .bodySmall(color: AppTheme.textSecondary.withOpacity(0.5))
+              .bodySmall(color: AppTheme.textSecondary.withValues(alpha: 0.5))
               .copyWith(fontSize: 12),
         ),
       ],
@@ -571,7 +567,7 @@ class _NavigationCard extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
+                    color: color.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 24),

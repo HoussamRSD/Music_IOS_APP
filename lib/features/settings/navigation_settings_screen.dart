@@ -121,7 +121,7 @@ class NavigationSettingsScreen extends ConsumerWidget {
                               // Default tab star button
                               CupertinoButton(
                                 padding: EdgeInsets.zero,
-                                minSize: 32,
+                                minimumSize: Size.square(32),
                                 onPressed: isVisible
                                     ? () {
                                         ref
@@ -136,10 +136,10 @@ class NavigationSettingsScreen extends ConsumerWidget {
                                   color: isDefault
                                       ? Colors.amber
                                       : (isVisible
-                                            ? AppTheme.textSecondary
-                                            : AppTheme.textSecondary.withValues(
-                                                alpha: 0.3,
-                                              )),
+                                          ? AppTheme.textSecondary
+                                          : AppTheme.textSecondary.withValues(
+                                              alpha: 0.3,
+                                            )),
                                   size: 22,
                                 ),
                               ),
@@ -147,7 +147,7 @@ class NavigationSettingsScreen extends ConsumerWidget {
                               // Visibility toggle
                               CupertinoSwitch(
                                 value: isVisible,
-                                activeColor: AppTheme.primaryColor,
+                                activeTrackColor: AppTheme.primaryColor,
                                 onChanged: (value) {
                                   ref
                                       .read(navigationProvider.notifier)

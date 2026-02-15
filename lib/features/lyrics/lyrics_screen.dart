@@ -148,7 +148,7 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
                   ? Image.file(
                       File(widget.song.artworkPath!),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _defaultThumbnail(),
+                      errorBuilder: (_, _, _) => _defaultThumbnail(),
                     )
                   : _defaultThumbnail(),
             ),

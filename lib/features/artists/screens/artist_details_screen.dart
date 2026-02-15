@@ -87,7 +87,7 @@ class _ArtistSongTile extends ConsumerWidget {
                       ? Image.file(
                           File(song.artworkPath!),
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (_, _, _) => const Icon(
                             CupertinoIcons.music_note,
                             color: AppTheme.textSecondary,
                           ),

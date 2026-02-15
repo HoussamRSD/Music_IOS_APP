@@ -84,7 +84,7 @@ class SettingsScreen extends ConsumerWidget {
               Text(
                 'Version 1.0.0 (1)',
                 style: AppTheme.textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary.withOpacity(0.5),
+                  color: AppTheme.textSecondary.withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -118,6 +118,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildDivider() {
-    return Divider(height: 1, indent: 50, color: Colors.white.withOpacity(0.1));
+    return Divider(
+        height: 1, indent: 50, color: Colors.white.withValues(alpha: 0.1));
   }
 }

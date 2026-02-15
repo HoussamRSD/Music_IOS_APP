@@ -226,7 +226,9 @@ class DownloadService {
       if (artPath != null) {
         try {
           artworkBytes = await File(artPath).readAsBytes();
-        } catch (e) {}
+        } catch (e) {
+          debugPrint('Error reading artwork: $e');
+        }
       }
 
       final tag = Tag(

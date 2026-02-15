@@ -203,7 +203,7 @@ class SongListTile extends ConsumerWidget {
             ),
             CupertinoButton(
               padding: EdgeInsets.zero,
-              minSize: 32,
+              minimumSize: Size.square(32),
               child: Icon(
                 song.isFavorite
                     ? CupertinoIcons.heart_fill

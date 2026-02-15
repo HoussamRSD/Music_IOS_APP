@@ -20,7 +20,7 @@ final allArtistsProvider = Provider<List<String>>((ref) {
         ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     },
     loading: () => [],
-    error: (_, __) => [],
+    error: (_, _) => [],
   );
 });
 
@@ -41,6 +41,6 @@ final artistSongsProvider = Provider.family<List<Song>, String>((
       }).toList();
     },
     loading: () => [],
-    error: (_, __) => [],
+    error: (_, _) => [],
   );
 });

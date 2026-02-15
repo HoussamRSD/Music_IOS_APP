@@ -49,7 +49,7 @@ class FontSettingsScreen extends ConsumerWidget {
               separatorBuilder: (context, index) => Divider(
                 height: 1,
                 indent: 50,
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
               ),
               itemBuilder: (context, index) {
                 final font = AppFont.values[index];
