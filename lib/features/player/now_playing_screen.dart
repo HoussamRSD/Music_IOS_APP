@@ -14,7 +14,7 @@ import '../lyrics/lyrics_screen.dart';
 import '../playlists/components/add_to_playlist_sheet.dart';
 import '../settings/providers/font_provider.dart';
 import 'services/audio_player_service.dart';
-import 'services/queue_service.dart';
+import 'services/queue_service.dart' as queue;
 
 // Provider to fetch lyrics for the current song
 final currentSongLyricsProvider = FutureProvider<Lyrics?>((ref) async {
@@ -48,10 +48,10 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   Widget build(BuildContext context) {
     final playerState = ref.watch(audioPlayerServiceProvider);
     final currentSong = playerState.currentSong;
-    final hasNext = ref.watch(hasNextSongProvider);
-    final hasPrevious = ref.watch(hasPreviousSongProvider);
-    final shuffleEnabled = ref.watch(shuffleEnabledProvider);
-    final repeatMode = ref.watch(repeatModeProvider);
+    final hasNext = ref.watch(queue.hasNextSongProvider);
+    final hasPrevious = ref.watch(queue.hasPreviousSongProvider);
+    final shuffleEnabled = ref.watch(queue.shuffleEnabledProvider);
+    final repeatMode = ref.watch(queue.repeatModeProvider);
     final selectedFont = ref.watch(fontProvider).fontFamily;
 
     if (currentSong == null) {
@@ -147,7 +147,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                     child: Slider(
                       value: playerState.duration.inMilliseconds > 0
                           ? playerState.position.inMilliseconds /
-                                playerState.duration.inMilliseconds
+                              playerState.duration.inMilliseconds
                           : 0.0,
                       onChanged: (value) {
                         final position = Duration(
@@ -238,7 +238,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                     padding: EdgeInsets.zero,
                     onPressed: () {
                       ref
-                          .read(queueControllerProvider.notifier)
+                          .read(queue.queueControllerProvider.notifier)
                           .toggleShuffle();
                     },
                     child: Icon(
@@ -256,9 +256,10 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                     onPressed: hasPrevious
                         ? () {
                             ref
-                                .read(queueControllerProvider.notifier)
+                                .read(queue.queueControllerProvider.notifier)
                                 .previous();
-                            final prevSong = ref.read(currentQueueSongProvider);
+                            final prevSong =
+                                ref.read(queue.currentQueueSongProvider);
                             if (prevSong != null) {
                               ref
                                   .read(audioPlayerServiceProvider.notifier)
@@ -297,8 +298,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                     padding: EdgeInsets.zero,
                     onPressed: hasNext
                         ? () {
-                            ref.read(queueControllerProvider.notifier).next();
-                            final nextSong = ref.read(currentQueueSongProvider);
+                            ref
+                                .read(queue.queueControllerProvider.notifier)
+                                .next();
+                            final nextSong =
+                                ref.read(queue.currentQueueSongProvider);
                             if (nextSong != null) {
                               ref
                                   .read(audioPlayerServiceProvider.notifier)
@@ -320,7 +324,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                     padding: EdgeInsets.zero,
                     onPressed: () {
                       ref
-                          .read(queueControllerProvider.notifier)
+                          .read(queue.queueControllerProvider.notifier)
                           .cycleRepeatMode();
                     },
                     child: Stack(
@@ -329,11 +333,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                         Icon(
                           CupertinoIcons.repeat,
                           size: 24,
-                          color: repeatMode != RepeatMode.off
+                          color: repeatMode != queue.RepeatMode.off
                               ? AppTheme.primaryColor
                               : Colors.white.withValues(alpha: 0.8),
                         ),
-                        if (repeatMode == RepeatMode.one)
+                        if (repeatMode == queue.RepeatMode.one)
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -372,9 +376,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: () async {
-                      await ref
-                          .read(songRepositoryProvider)
-                          .toggleFavorite(
+                      await ref.read(songRepositoryProvider).toggleFavorite(
                             currentSong.id!,
                             !currentSong.isFavorite,
                           );
@@ -553,7 +555,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   }
 
   void _showQueueSheet(BuildContext context, WidgetRef ref) {
-    final queueState = ref.read(queueControllerProvider);
+    final queueState = ref.read(queue.queueControllerProvider);
     showCupertinoModalPopup(
       context: context,
       builder: (context) => Container(
@@ -621,7 +623,9 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     onTap: () {
-                      ref.read(queueControllerProvider.notifier).jumpTo(index);
+                      ref
+                          .read(queue.queueControllerProvider.notifier)
+                          .jumpTo(index);
                       ref
                           .read(audioPlayerServiceProvider.notifier)
                           .playSong(song);
