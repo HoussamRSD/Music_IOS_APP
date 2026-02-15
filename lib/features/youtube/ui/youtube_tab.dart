@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import '../../../core/theme/app_theme.dart';
@@ -18,7 +19,7 @@ class YouTubeTab extends ConsumerStatefulWidget {
 }
 
 class _YouTubeTabState extends ConsumerState<YouTubeTab>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   late WebViewController _webViewController;
   bool _isLoading = true;
   bool _canGoBack = false;
@@ -26,6 +27,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
   bool _isMenuOpen = false;
 
   static const String _homeUrl = 'https://m.youtube.com';
+  static const String _lastUrlKey = 'youtube_last_url';
 
   @override
   bool get wantKeepAlive => true;
@@ -33,10 +35,41 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeWebView();
   }
 
-  void _initializeWebView() {
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _saveCurrentUrl();
+    }
+  }
+
+  Future<void> _saveCurrentUrl() async {
+    try {
+      final url = await _webViewController.currentUrl();
+      if (url != null && url.contains('youtube.com')) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_lastUrlKey, url);
+      }
+    } catch (e) {
+      debugPrint('Error saving YouTube URL: $e');
+    }
+  }
+
+  Future<void> _initializeWebView() async {
+    // Restore the last visited URL so the login session is preserved
+    final prefs = await SharedPreferences.getInstance();
+    final savedUrl = prefs.getString(_lastUrlKey) ?? _homeUrl;
+
     late final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
       params = WebKitWebViewControllerCreationParams(
@@ -65,6 +98,13 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
           },
           onPageFinished: (String url) async {
             if (mounted) {
+              // Save last visited URL for session persistence
+              if (url.contains('youtube.com')) {
+                SharedPreferences.getInstance().then((prefs) {
+                  prefs.setString(_lastUrlKey, url);
+                });
+              }
+
               // INJECT JS TO PREVENT BACKGROUND PAUSE
               // This overrides the Page Visibility API to always return 'visible'
               await _webViewController.runJavaScript('''
@@ -96,7 +136,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
           },
         ),
       )
-      ..loadRequest(Uri.parse(_homeUrl));
+      ..loadRequest(Uri.parse(savedUrl));
   }
 
   void _toggleMenu() {
@@ -199,6 +239,10 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
                 await _webViewController.clearCache();
                 await _webViewController.clearLocalStorage();
 
+                // Clear saved URL so next launch starts fresh
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove(_lastUrlKey);
+
                 // Reload Home
                 _webViewController.loadRequest(Uri.parse(_homeUrl));
 
@@ -255,8 +299,8 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
 
           // Section 2: Video Options (Filtered Unique by Quality Label)
           ...qualities.map((q) {
-            final qualityLabel = q.videoQuality
-                .toString(); // or custom getter if added
+            final qualityLabel =
+                q.videoQuality.toString(); // or custom getter if added
             // Clean up label if needed, e.g. "VideoQuality.high720" -> "720p"
             final label =
                 '${qualityLabel.split('.').last.replaceAll('high', '')}p';
@@ -309,9 +353,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
       ),
     );
 
-    final success = await ref
-        .read(downloadServiceProvider)
-        .downloadVideo(
+    final success = await ref.read(downloadServiceProvider).downloadVideo(
           videoId,
           isAudioOnly: isAudio,
           safeMode: safeMode,
@@ -376,9 +418,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
       }
 
       // Play audio in background
-      ref
-          .read(audioPlayerServiceProvider.notifier)
-          .playYouTubeVideo(
+      ref.read(audioPlayerServiceProvider.notifier).playYouTubeVideo(
             audioUrl,
             videoInfo.title,
             videoInfo.author,
@@ -462,8 +502,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
             Padding(
               padding: EdgeInsets.only(
                 top: MediaQuery.of(context).padding.top,
-                bottom:
-                    kBottomNavigationBarHeight +
+                bottom: kBottomNavigationBarHeight +
                     MediaQuery.of(context).padding.bottom,
               ),
               child: WebViewWidget(controller: _webViewController),
@@ -487,8 +526,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
             // 3. Floating Control Menu (Bottom Right)
             Positioned(
               // Position above App Bottom Bar + YouTube Bottom Bar (~50px) + Buffer
-              bottom:
-                  kBottomNavigationBarHeight +
+              bottom: kBottomNavigationBarHeight +
                   MediaQuery.of(context).padding.bottom +
                   60,
               right: 20,
