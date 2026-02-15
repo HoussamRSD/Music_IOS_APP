@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/models/song.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/app_text_styles.dart';
+
 import '../../../ui/components/glass_container.dart';
 import '../../../ui/components/tab_header.dart';
 import '../../player/services/audio_player_service.dart';
@@ -58,13 +58,10 @@ class FavoritesTab extends ConsumerWidget {
             SliverPadding(
               padding: const EdgeInsets.only(bottom: 180),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final song = favorites[index];
-                    return _FavoriteSongTile(song: song);
-                  },
-                  childCount: favorites.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final song = favorites[index];
+                  return _FavoriteSongTile(song: song);
+                }, childCount: favorites.length),
               ),
             ),
           ],

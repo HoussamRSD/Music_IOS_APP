@@ -116,6 +116,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
     setState(() => _isMenuOpen = false);
 
     // 1. Fetch Video Metadata & Qualities
+    if (!mounted) return;
     showCupertinoDialog(
       context: context,
       barrierDismissible: false,
@@ -166,7 +167,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
 
     showCupertinoDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (dialogContext) => CupertinoAlertDialog(
         title: const Text('Clear YouTube Data'),
         content: const Text(
           'This will sign you out and clear all local YouTube data (cookies, cache). Are you sure?',
@@ -175,7 +176,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () async {
-              Navigator.pop(context); // Close confirmation
+              Navigator.pop(dialogContext); // Close confirmation
 
               // Show loading
               showCupertinoDialog(
@@ -217,7 +218,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
           ),
           CupertinoDialogAction(
             isDefaultAction: true,
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
         ],
@@ -253,28 +254,25 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
           ),
 
           // Section 2: Video Options (Filtered Unique by Quality Label)
-          ...qualities
-              .map((q) {
-                final qualityLabel = q.videoQuality
-                    .toString(); // or custom getter if added
-                // Clean up label if needed, e.g. "VideoQuality.high720" -> "720p"
-                final label =
-                    qualityLabel.split('.').last.replaceAll('high', '') + 'p';
+          ...qualities.map((q) {
+            final qualityLabel = q.videoQuality
+                .toString(); // or custom getter if added
+            // Clean up label if needed, e.g. "VideoQuality.high720" -> "720p"
+            final label =
+                '${qualityLabel.split('.').last.replaceAll('high', '')}p';
 
-                return CupertinoActionSheetAction(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _startDownload(
-                      videoId,
-                      isAudio: false,
-                      qualityLabel: qualityLabel,
-                    );
-                  },
-                  child: Text('🎬 Video - $label'),
+            return CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                _startDownload(
+                  videoId,
+                  isAudio: false,
+                  qualityLabel: qualityLabel,
                 );
-              })
-              .toSet()
-              .toList(), // Basic dedup logic might be needed
+              },
+              child: Text('🎬 Video - $label'),
+            );
+          }).toSet(), // Basic dedup logic might be needed
         ],
         cancelButton: CupertinoActionSheetAction(
           isDefaultAction: true,
@@ -342,6 +340,8 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
 
     setState(() => _isMenuOpen = false);
 
+    if (!mounted) return;
+
     // Show loading indicator
     showCupertinoDialog(
       context: context,
@@ -404,7 +404,9 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
       } else if (url.contains('youtu.be/')) {
         return url.split('youtu.be/').last.split('?').first;
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error extracting video ID: $e');
+    }
     return null;
   }
 
@@ -446,7 +448,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         if (await _webViewController.canGoBack()) {
           _webViewController.goBack();
@@ -477,7 +479,7 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
                   minHeight: 2,
                   backgroundColor: Colors.transparent,
                   valueColor: AlwaysStoppedAnimation(
-                    AppTheme.primaryColor.withOpacity(0.8),
+                    AppTheme.primaryColor.withValues(alpha: 0.8),
                   ),
                 ),
               ),
@@ -610,7 +612,7 @@ class _FloatingMenuItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -628,9 +630,9 @@ class _FloatingMenuItem extends StatelessWidget {
             width: isMini ? 40 : 56,
             height: isMini ? 40 : 56,
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
             child: Icon(icon, color: color, size: isMini ? 20 : 28),
           ),
