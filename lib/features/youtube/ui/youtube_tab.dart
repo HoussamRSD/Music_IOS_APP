@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../download/services/download_service.dart'; // Keep for future generic download
 import '../../player/services/audio_player_service.dart';
 import '../models/youtube_video.dart';
+import '../services/cookie_persistence_service.dart';
 import '../services/youtube_service.dart';
 
 class YouTubeTab extends ConsumerStatefulWidget {
@@ -50,6 +51,8 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       _saveCurrentUrl();
+      // Save cookies natively so they persist across force-kills
+      CookiePersistenceService.saveCookies();
     }
   }
 
@@ -66,6 +69,9 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
   }
 
   Future<void> _initializeWebView() async {
+    // Restore cookies saved from previous session (native iOS)
+    await CookiePersistenceService.restoreCookies();
+
     // Restore the last visited URL so the login session is preserved
     final prefs = await SharedPreferences.getInstance();
     final savedUrl = prefs.getString(_lastUrlKey) ?? _homeUrl;
@@ -242,6 +248,9 @@ class _YouTubeTabState extends ConsumerState<YouTubeTab>
                 // Clear saved URL so next launch starts fresh
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.remove(_lastUrlKey);
+
+                // Clear saved cookies too
+                await CookiePersistenceService.clearSavedCookies();
 
                 // Reload Home
                 _webViewController.loadRequest(Uri.parse(_homeUrl));
