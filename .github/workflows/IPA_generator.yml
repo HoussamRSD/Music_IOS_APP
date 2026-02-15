@@ -26,18 +26,32 @@ jobs:
 
       - name: Build iOS app (no code signing)
         run: |
-          export CODE_SIGNING_ALLOWED=NO
-          export CODE_SIGNING_REQUIRED=NO
-          export CODE_SIGN_IDENTITY=""
-          flutter build ios --release --no-codesign
+          # Generate Flutter build files
+          flutter build ios --release --no-codesign --config-only
+
+          # Build using xcodebuild directly to bypass Flutter's Development Team check
+          cd ios
+          xcodebuild \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath ../build/ios/archive/Runner.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            DEVELOPMENT_TEAM=""
 
       - name: Create IPA
         run: |
           # Create Payload directory
           mkdir -p Payload
 
-          # Move Runner.app to Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
+          # Move Runner.app from archive to Payload
+          cp -r build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app Payload/
 
           # Create IPA (zip file with .ipa extension)
           zip -r -q FlutterIpaExport.ipa Payload
