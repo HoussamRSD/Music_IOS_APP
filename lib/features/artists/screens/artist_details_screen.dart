@@ -31,8 +31,8 @@ class ArtistDetailsScreen extends ConsumerWidget {
               child: Text(
                 'No songs found',
                 style: appTextStyles.bodyMedium().copyWith(
-                  color: AppTheme.textSecondary,
-                ),
+                      color: AppTheme.textSecondary,
+                    ),
               ),
             )
           : ListView.builder(
@@ -87,7 +87,7 @@ class _ArtistSongTile extends ConsumerWidget {
                       ? Image.file(
                           File(song.artworkPath!),
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Icon(
+                          errorBuilder: (ctx, err, st) => const Icon(
                             CupertinoIcons.music_note,
                             color: AppTheme.textSecondary,
                           ),
@@ -113,8 +113,8 @@ class _ArtistSongTile extends ConsumerWidget {
                     Text(
                       song.album ?? 'Unknown Album',
                       style: appTextStyles.bodySmall().copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                            color: AppTheme.textSecondary,
+                          ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -124,8 +124,8 @@ class _ArtistSongTile extends ConsumerWidget {
               Text(
                 _formatDuration(song.duration ?? 0),
                 style: appTextStyles.bodySmall().copyWith(
-                  color: AppTheme.textSecondary,
-                ),
+                      color: AppTheme.textSecondary,
+                    ),
               ),
             ],
           ),
